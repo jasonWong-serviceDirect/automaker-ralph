@@ -40,7 +40,7 @@ import {
   TestTube,
   Settings2,
   RefreshCw,
-  RotateCcw,
+  Info,
 } from "lucide-react";
 import { getElectronAPI } from "@/lib/electron";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -52,6 +52,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useSetupStore } from "@/store/setup-store";
 
 // Navigation items for the side panel
 const NAV_ITEMS = [
@@ -143,10 +144,15 @@ export function SettingsView() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isCheckingClaudeCli, setIsCheckingClaudeCli] = useState(false);
   const [isCheckingCodexCli, setIsCheckingCodexCli] = useState(false);
-  const [editingShortcut, setEditingShortcut] = useState<string | null>(null);
-  const [shortcutValue, setShortcutValue] = useState("");
-  const [shortcutError, setShortcutError] = useState<string | null>(null);
+  const [apiKeyStatus, setApiKeyStatus] = useState<{
+    hasAnthropicKey: boolean;
+    hasOpenAIKey: boolean;
+    hasGoogleKey: boolean;
+  } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Get authentication status from setup store
+  const { claudeAuthStatus, codexAuthStatus } = useSetupStore();
 
   useEffect(() => {
     setAnthropicKey(apiKeys.anthropic);
@@ -171,6 +177,21 @@ export function SettingsView() {
           setCodexCliStatus(status);
         } catch (error) {
           console.error("Failed to check Codex CLI status:", error);
+        }
+      }
+      // Check API key status from environment
+      if (api?.setup?.getApiKeys) {
+        try {
+          const status = await api.setup.getApiKeys();
+          if (status.success) {
+            setApiKeyStatus({
+              hasAnthropicKey: status.hasAnthropicKey,
+              hasOpenAIKey: status.hasOpenAIKey,
+              hasGoogleKey: status.hasGoogleKey,
+            });
+          }
+        } catch (error) {
+          console.error("Failed to check API key status:", error);
         }
       }
     };
@@ -745,6 +766,176 @@ export function SettingsView() {
                       </span>
                     </div>
                   )}
+                </div>
+
+                {/* Authentication Status Display */}
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Info className="w-4 h-4 text-brand-500" />
+                    <Label className="text-foreground font-semibold">
+                      Current Authentication Configuration
+                    </Label>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Claude Authentication Status */}
+                    <div className="p-3 rounded-lg bg-card border border-border">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Terminal className="w-4 h-4 text-brand-500" />
+                        <span className="text-sm font-medium text-foreground">
+                          Claude (Anthropic)
+                        </span>
+                      </div>
+                      <div className="space-y-1.5 text-xs min-h-[3rem]">
+                        {claudeAuthStatus?.authenticated ? (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="w-3 h-3 text-green-500 shrink-0" />
+                              <span className="text-muted-foreground">
+                                Method:{" "}
+                                <span className="font-mono text-foreground">
+                                  {claudeAuthStatus.method === "oauth"
+                                    ? "OAuth Token"
+                                    : claudeAuthStatus.method === "api_key"
+                                    ? "API Key"
+                                    : "Unknown"}
+                                </span>
+                              </span>
+                            </div>
+                            {claudeAuthStatus.oauthTokenValid && (
+                              <div className="flex items-center gap-2 text-green-400">
+                                <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                <span>OAuth token configured</span>
+                              </div>
+                            )}
+                            {claudeAuthStatus.apiKeyValid && (
+                              <div className="flex items-center gap-2 text-green-400">
+                                <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                <span>API key configured</span>
+                              </div>
+                            )}
+                            {apiKeyStatus?.hasAnthropicKey && (
+                              <div className="flex items-center gap-2 text-blue-400">
+                                <Info className="w-3 h-3 shrink-0" />
+                                <span>Environment variable detected</span>
+                              </div>
+                            )}
+                            {apiKeys.anthropic && (
+                              <div className="flex items-center gap-2 text-blue-400">
+                                <Info className="w-3 h-3 shrink-0" />
+                                <span>Manual API key in settings</span>
+                              </div>
+                            )}
+                          </>
+                        ) : apiKeyStatus?.hasAnthropicKey ? (
+                          <div className="flex items-center gap-2 text-blue-400">
+                            <Info className="w-3 h-3 shrink-0" />
+                            <span>Using environment variable (ANTHROPIC_API_KEY)</span>
+                          </div>
+                        ) : apiKeys.anthropic ? (
+                          <div className="flex items-center gap-2 text-blue-400">
+                            <Info className="w-3 h-3 shrink-0" />
+                            <span>Using manual API key from settings</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-muted-foreground py-0.5">
+                            <AlertCircle className="w-2.5 h-2.5 shrink-0" />
+                            <span className="text-xs">Not Setup</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Codex/OpenAI Authentication Status */}
+                    <div className="p-3 rounded-lg bg-card border border-border">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Atom className="w-4 h-4 text-green-500" />
+                        <span className="text-sm font-medium text-foreground">
+                          Codex (OpenAI)
+                        </span>
+                      </div>
+                      <div className="space-y-1.5 text-xs min-h-[3rem]">
+                        {codexAuthStatus?.authenticated ? (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="w-3 h-3 text-green-500 shrink-0" />
+                              <span className="text-muted-foreground">
+                                Method:{" "}
+                                <span className="font-mono text-foreground">
+                                  {codexAuthStatus.method === "api_key"
+                                    ? "API Key (Auth File)"
+                                    : codexAuthStatus.method === "env"
+                                    ? "API Key (Environment)"
+                                    : "Unknown"}
+                                </span>
+                              </span>
+                            </div>
+                            {codexAuthStatus.apiKeyValid && (
+                              <div className="flex items-center gap-2 text-green-400">
+                                <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                <span>API key configured</span>
+                              </div>
+                            )}
+                            {apiKeyStatus?.hasOpenAIKey && (
+                              <div className="flex items-center gap-2 text-blue-400">
+                                <Info className="w-3 h-3 shrink-0" />
+                                <span>Environment variable detected</span>
+                              </div>
+                            )}
+                            {apiKeys.openai && (
+                              <div className="flex items-center gap-2 text-blue-400">
+                                <Info className="w-3 h-3 shrink-0" />
+                                <span>Manual API key in settings</span>
+                              </div>
+                            )}
+                          </>
+                        ) : apiKeyStatus?.hasOpenAIKey ? (
+                          <div className="flex items-center gap-2 text-blue-400">
+                            <Info className="w-3 h-3 shrink-0" />
+                            <span>Using environment variable (OPENAI_API_KEY)</span>
+                          </div>
+                        ) : apiKeys.openai ? (
+                          <div className="flex items-center gap-2 text-blue-400">
+                            <Info className="w-3 h-3 shrink-0" />
+                            <span>Using manual API key from settings</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-muted-foreground py-0.5">
+                            <AlertCircle className="w-2.5 h-2.5 shrink-0" />
+                            <span className="text-xs">Not Setup</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Google/Gemini Authentication Status */}
+                    <div className="p-3 rounded-lg bg-card border border-border">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Sparkles className="w-4 h-4 text-purple-500" />
+                        <span className="text-sm font-medium text-foreground">
+                          Gemini (Google)
+                        </span>
+                      </div>
+                      <div className="space-y-1.5 text-xs min-h-[3rem]">
+                        {apiKeyStatus?.hasGoogleKey ? (
+                          <div className="flex items-center gap-2 text-blue-400">
+                            <Info className="w-3 h-3 shrink-0" />
+                            <span>Using environment variable (GOOGLE_API_KEY)</span>
+                          </div>
+                        ) : apiKeys.google ? (
+                          <div className="flex items-center gap-2 text-blue-400">
+                            <Info className="w-3 h-3 shrink-0" />
+                            <span>Using manual API key from settings</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-muted-foreground py-0.5">
+                            <AlertCircle className="w-2.5 h-2.5 shrink-0" />
+                            <span className="text-xs">Not Setup</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Security Notice */}

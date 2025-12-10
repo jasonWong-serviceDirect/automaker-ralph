@@ -6,3 +6,8 @@ agents-context/
 
 # Attached images - uploaded by users as feature context
 images/
+
+# Launch script - local development script
+launch.sh
+
+.cursor
