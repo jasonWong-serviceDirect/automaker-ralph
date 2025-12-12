@@ -28,6 +28,7 @@ import { createSuggestionsRoutes } from "./routes/suggestions.js";
 import { createModelsRoutes } from "./routes/models.js";
 import { createSpecRegenerationRoutes } from "./routes/spec-regeneration.js";
 import { createRunningAgentsRoutes } from "./routes/running-agents.js";
+import { createWorkspaceRoutes } from "./routes/workspace.js";
 import { AgentService } from "./services/agent-service.js";
 import { FeatureLoader } from "./services/feature-loader.js";
 
@@ -47,7 +48,11 @@ if (!hasAnthropicKey) {
 ║  ⚠️  WARNING: ANTHROPIC_API_KEY not set                                ║
 ║                                                                       ║
 ║  The Claude Agent SDK requires ANTHROPIC_API_KEY to function.         ║
-║  ${hasOAuthToken ? '  You have CLAUDE_CODE_OAUTH_TOKEN set - this is for CLI auth only.' : ''}
+║  ${
+    hasOAuthToken
+      ? "  You have CLAUDE_CODE_OAUTH_TOKEN set - this is for CLI auth only."
+      : ""
+  }
 ║                                                                       ║
 ║  Set your API key:                                                    ║
 ║    export ANTHROPIC_API_KEY="sk-ant-..."                              ║
@@ -106,6 +111,7 @@ app.use("/api/suggestions", createSuggestionsRoutes(events));
 app.use("/api/models", createModelsRoutes());
 app.use("/api/spec-regeneration", createSpecRegenerationRoutes(events));
 app.use("/api/running-agents", createRunningAgentsRoutes());
+app.use("/api/workspace", createWorkspaceRoutes());
 
 // Create HTTP server
 const server = createServer(app);

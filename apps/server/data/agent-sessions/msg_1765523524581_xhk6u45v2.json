@@ -1,0 +1,14 @@
+[
+  {
+    "id": "msg_1765523527444_d8xyk8rh9",
+    "role": "user",
+    "content": "this is a test",
+    "timestamp": "2025-12-12T07:12:07.444Z"
+  },
+  {
+    "id": "msg_1765523534075_351i0rcft",
+    "role": "assistant",
+    "content": "Hello! This is a test response. I'm working correctly and ready to help you with your software development projects.\n\nIs there something specific you'd like to work on today? I can help you with:\n\n- **Planning a new project** - Define requirements, architecture, and technical approach\n- **Writing code** - Create new files, implement features, or build components\n- **Editing existing code** - Modify, refactor, or fix bugs in your codebase\n- **Running commands** - Execute tests, builds, or other terminal commands\n- **Exploring your codebase** - Search for patterns, understand existing code structure\n\nJust let me know what you need!",
+    "timestamp": "2025-12-12T07:12:14.075Z"
+  }
+]

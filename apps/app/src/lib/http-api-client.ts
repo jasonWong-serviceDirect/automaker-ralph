@@ -23,6 +23,7 @@ import type {
   FeatureSuggestion,
   SuggestionType,
 } from "./electron";
+import type { Message, SessionListItem } from "@/types/electron";
 import type { Feature } from "@/store/app-store";
 import type {
   WorktreeAPI,
@@ -31,52 +32,16 @@ import type {
   ProviderStatus,
 } from "@/types/electron";
 
-// Check if we're in simplified Electron mode (Electron with HTTP backend)
-const isSimplifiedElectronMode = (): boolean => {
-  if (typeof window === "undefined") return false;
-  const api = (window as any).electronAPI;
-  // Simplified mode has isElectron flag but limited methods
-  return api?.isElectron === true && typeof api?.getServerUrl === "function";
-};
 
-// Check if native Electron dialogs are available
-const hasNativeDialogs = (): boolean => {
-  if (typeof window === "undefined") return false;
-  const api = (window as any).electronAPI;
-  return typeof api?.openDirectory === "function";
-};
-
-// Server URL - configurable via environment variable or Electron
-const getServerUrl = async (): Promise<string> => {
-  if (typeof window !== "undefined") {
-    // In simplified Electron mode, get URL from main process
-    const api = (window as any).electronAPI;
-    if (api?.getServerUrl) {
-      try {
-        return await api.getServerUrl();
-      } catch {
-        // Fall through to defaults
-      }
-    }
-
-    // Check for environment variable
-    const envUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-    if (envUrl) return envUrl;
-
-    // Default to localhost for development
-    return "http://localhost:3008";
-  }
-  return "http://localhost:3008";
-};
-
-// Synchronous version for constructor (uses default, then updates)
-const getServerUrlSync = (): string => {
+// Server URL - configurable via environment variable
+const getServerUrl = (): string => {
   if (typeof window !== "undefined") {
     const envUrl = process.env.NEXT_PUBLIC_SERVER_URL;
     if (envUrl) return envUrl;
   }
   return "http://localhost:3008";
 };
+
 
 // Get API key from environment variable
 const getApiKey = (): string | null => {
@@ -105,23 +70,8 @@ export class HttpApiClient implements ElectronAPI {
   private isConnecting = false;
 
   constructor() {
-    this.serverUrl = getServerUrlSync();
-    // Update server URL asynchronously if in Electron
-    this.initServerUrl();
+    this.serverUrl = getServerUrl();
     this.connectWebSocket();
-  }
-
-  private async initServerUrl(): Promise<void> {
-    const url = await getServerUrl();
-    if (url !== this.serverUrl) {
-      this.serverUrl = url;
-      // Reconnect WebSocket with new URL
-      if (this.ws) {
-        this.ws.close();
-        this.ws = null;
-      }
-      this.connectWebSocket();
-    }
   }
 
   private connectWebSocket(): void {
@@ -222,6 +172,23 @@ export class HttpApiClient implements ElectronAPI {
     return response.json();
   }
 
+  private async put<T>(endpoint: string, body?: unknown): Promise<T> {
+    const response = await fetch(`${this.serverUrl}${endpoint}`, {
+      method: "PUT",
+      headers: this.getHeaders(),
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return response.json();
+  }
+
+  private async httpDelete<T>(endpoint: string): Promise<T> {
+    const response = await fetch(`${this.serverUrl}${endpoint}`, {
+      method: "DELETE",
+      headers: this.getHeaders(),
+    });
+    return response.json();
+  }
+
   // Basic operations
   async ping(): Promise<string> {
     const result = await this.get<{ status: string }>("/api/health");
@@ -229,27 +196,13 @@ export class HttpApiClient implements ElectronAPI {
   }
 
   async openExternalLink(url: string): Promise<{ success: boolean; error?: string }> {
-    // Use native Electron shell if available (better UX)
-    if (hasNativeDialogs()) {
-      const api = (window as any).electronAPI;
-      if (api.openExternalLink) {
-        return api.openExternalLink(url);
-      }
-    }
-    // Web mode: open in new tab
+    // Open in new tab
     window.open(url, "_blank", "noopener,noreferrer");
     return { success: true };
   }
 
-  // File picker - uses native Electron dialogs when available, otherwise prompt
+  // File picker - uses prompt for path input
   async openDirectory(): Promise<DialogResult> {
-    // Use native Electron dialog if available
-    if (hasNativeDialogs()) {
-      const api = (window as any).electronAPI;
-      return api.openDirectory();
-    }
-
-    // Web mode: show a modal to let user type/paste path
     const path = prompt("Enter project directory path:");
     if (!path) {
       return { canceled: true, filePaths: [] };
@@ -271,13 +224,7 @@ export class HttpApiClient implements ElectronAPI {
   }
 
   async openFile(options?: object): Promise<DialogResult> {
-    // Use native Electron dialog if available
-    if (hasNativeDialogs()) {
-      const api = (window as any).electronAPI;
-      return api.openFile(options);
-    }
-
-    // Web mode: prompt for file path
+    // Prompt for file path
     const path = prompt("Enter file path:");
     if (!path) {
       return { canceled: true, filePaths: [] };
@@ -650,6 +597,98 @@ export class HttpApiClient implements ElectronAPI {
       autoLoopRunning?: boolean;
       error?: string;
     }> => this.get("/api/running-agents"),
+  };
+
+  // Workspace API
+  workspace = {
+    getConfig: (): Promise<{
+      success: boolean;
+      configured: boolean;
+      workspaceDir?: string;
+      error?: string;
+    }> => this.get("/api/workspace/config"),
+
+    getDirectories: (): Promise<{
+      success: boolean;
+      directories?: Array<{ name: string; path: string }>;
+      error?: string;
+    }> => this.get("/api/workspace/directories"),
+  };
+
+  // Agent API
+  agent = {
+    start: (sessionId: string, workingDirectory?: string): Promise<{
+      success: boolean;
+      messages?: Message[];
+      error?: string;
+    }> => this.post("/api/agent/start", { sessionId, workingDirectory }),
+
+    send: (
+      sessionId: string,
+      message: string,
+      workingDirectory?: string,
+      imagePaths?: string[]
+    ): Promise<{ success: boolean; error?: string }> =>
+      this.post("/api/agent/send", { sessionId, message, workingDirectory, imagePaths }),
+
+    getHistory: (sessionId: string): Promise<{
+      success: boolean;
+      messages?: Message[];
+      isRunning?: boolean;
+      error?: string;
+    }> => this.post("/api/agent/history", { sessionId }),
+
+    stop: (sessionId: string): Promise<{ success: boolean; error?: string }> =>
+      this.post("/api/agent/stop", { sessionId }),
+
+    clear: (sessionId: string): Promise<{ success: boolean; error?: string }> =>
+      this.post("/api/agent/clear", { sessionId }),
+
+    onStream: (callback: (data: unknown) => void): (() => void) => {
+      return this.subscribeToEvent("agent:stream", callback as EventCallback);
+    },
+  };
+
+  // Sessions API
+  sessions = {
+    list: (includeArchived?: boolean): Promise<{
+      success: boolean;
+      sessions?: SessionListItem[];
+      error?: string;
+    }> => this.get(`/api/sessions?includeArchived=${includeArchived || false}`),
+
+    create: (
+      name: string,
+      projectPath: string,
+      workingDirectory?: string
+    ): Promise<{
+      success: boolean;
+      session?: {
+        id: string;
+        name: string;
+        projectPath: string;
+        workingDirectory?: string;
+        createdAt: string;
+        updatedAt: string;
+      };
+      error?: string;
+    }> => this.post("/api/sessions", { name, projectPath, workingDirectory }),
+
+    update: (
+      sessionId: string,
+      name?: string,
+      tags?: string[]
+    ): Promise<{ success: boolean; error?: string }> =>
+      this.put(`/api/sessions/${sessionId}`, { name, tags }),
+
+    archive: (sessionId: string): Promise<{ success: boolean; error?: string }> =>
+      this.post(`/api/sessions/${sessionId}/archive`, {}),
+
+    unarchive: (sessionId: string): Promise<{ success: boolean; error?: string }> =>
+      this.post(`/api/sessions/${sessionId}/unarchive`, {}),
+
+    delete: (sessionId: string): Promise<{ success: boolean; error?: string }> =>
+      this.httpDelete(`/api/sessions/${sessionId}`),
   };
 }
 

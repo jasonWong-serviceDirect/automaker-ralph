@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { SessionListItem } from "@/types/electron";
 import { useKeyboardShortcutsConfig } from "@/hooks/use-keyboard-shortcuts";
+import { getElectronAPI } from "@/lib/electron";
 
 // Random session name generator
 const adjectives = [
@@ -115,14 +116,15 @@ export function SessionManager({
 
   // Check running state for all sessions
   const checkRunningSessions = async (sessionList: SessionListItem[]) => {
-    if (!window.electronAPI?.agent) return;
+    const api = getElectronAPI();
+    if (!api?.agent) return;
 
     const runningIds = new Set<string>();
 
     // Check each session's running state
     for (const session of sessionList) {
       try {
-        const result = await window.electronAPI.agent.getHistory(session.id);
+        const result = await api.agent.getHistory(session.id);
         if (result.success && result.isRunning) {
           runningIds.add(session.id);
         }
@@ -140,10 +142,11 @@ export function SessionManager({
 
   // Load sessions
   const loadSessions = async () => {
-    if (!window.electronAPI?.sessions) return;
+    const api = getElectronAPI();
+    if (!api?.sessions) return;
 
     // Always load all sessions and filter client-side
-    const result = await window.electronAPI.sessions.list(true);
+    const result = await api.sessions.list(true);
     if (result.success && result.sessions) {
       setSessions(result.sessions);
       // Check running state for all sessions
@@ -171,39 +174,41 @@ export function SessionManager({
 
   // Create new session with random name
   const handleCreateSession = async () => {
-    if (!window.electronAPI?.sessions) return;
+    const api = getElectronAPI();
+    if (!api?.sessions) return;
 
     const sessionName = newSessionName.trim() || generateRandomSessionName();
 
-    const result = await window.electronAPI.sessions.create(
+    const result = await api.sessions.create(
       sessionName,
       projectPath,
       projectPath
     );
 
-    if (result.success && result.sessionId) {
+    if (result.success && result.session?.id) {
       setNewSessionName("");
       setIsCreating(false);
       await loadSessions();
-      onSelectSession(result.sessionId);
+      onSelectSession(result.session.id);
     }
   };
 
   // Create new session directly with a random name (one-click)
   const handleQuickCreateSession = async () => {
-    if (!window.electronAPI?.sessions) return;
+    const api = getElectronAPI();
+    if (!api?.sessions) return;
 
     const sessionName = generateRandomSessionName();
 
-    const result = await window.electronAPI.sessions.create(
+    const result = await api.sessions.create(
       sessionName,
       projectPath,
       projectPath
     );
 
-    if (result.success && result.sessionId) {
+    if (result.success && result.session?.id) {
       await loadSessions();
-      onSelectSession(result.sessionId);
+      onSelectSession(result.session.id);
     }
   };
 
@@ -221,9 +226,10 @@ export function SessionManager({
 
   // Rename session
   const handleRenameSession = async (sessionId: string) => {
-    if (!editingName.trim() || !window.electronAPI?.sessions) return;
+    const api = getElectronAPI();
+    if (!editingName.trim() || !api?.sessions) return;
 
-    const result = await window.electronAPI.sessions.update(
+    const result = await api.sessions.update(
       sessionId,
       editingName,
       undefined
@@ -238,9 +244,10 @@ export function SessionManager({
 
   // Archive session
   const handleArchiveSession = async (sessionId: string) => {
-    if (!window.electronAPI?.sessions) return;
+    const api = getElectronAPI();
+    if (!api?.sessions) return;
 
-    const result = await window.electronAPI.sessions.archive(sessionId);
+    const result = await api.sessions.archive(sessionId);
     if (result.success) {
       // If the archived session was currently selected, deselect it
       if (currentSessionId === sessionId) {
@@ -252,9 +259,10 @@ export function SessionManager({
 
   // Unarchive session
   const handleUnarchiveSession = async (sessionId: string) => {
-    if (!window.electronAPI?.sessions) return;
+    const api = getElectronAPI();
+    if (!api?.sessions) return;
 
-    const result = await window.electronAPI.sessions.unarchive(sessionId);
+    const result = await api.sessions.unarchive(sessionId);
     if (result.success) {
       await loadSessions();
     }
@@ -262,10 +270,11 @@ export function SessionManager({
 
   // Delete session
   const handleDeleteSession = async (sessionId: string) => {
-    if (!window.electronAPI?.sessions) return;
+    const api = getElectronAPI();
+    if (!api?.sessions) return;
     if (!confirm("Are you sure you want to delete this session?")) return;
 
-    const result = await window.electronAPI.sessions.delete(sessionId);
+    const result = await api.sessions.delete(sessionId);
     if (result.success) {
       await loadSessions();
       if (currentSessionId === sessionId) {

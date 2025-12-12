@@ -83,6 +83,13 @@ export function DescriptionImageDropZone({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentProject = useAppStore((state) => state.currentProject);
 
+  // Construct server URL for loading saved images
+  const getImageServerUrl = useCallback((imagePath: string): string => {
+    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3008";
+    const projectPath = currentProject?.path || "";
+    return `${serverUrl}/api/fs/image?path=${encodeURIComponent(imagePath)}&projectPath=${encodeURIComponent(projectPath)}`;
+  }, [currentProject?.path]);
+
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -374,7 +381,15 @@ export function DescriptionImageDropZone({
                       className="max-w-full max-h-full object-contain"
                     />
                   ) : (
-                    <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                    <img
+                      src={getImageServerUrl(image.path)}
+                      alt={image.filename}
+                      className="max-w-full max-h-full object-contain"
+                      onError={(e) => {
+                        // If image fails to load, hide it
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
                   )}
                 </div>
                 {/* Remove button */}

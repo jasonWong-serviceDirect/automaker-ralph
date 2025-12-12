@@ -1,4 +1,5 @@
 // Type definitions for Electron IPC API
+import type { SessionListItem, Message } from "@/types/electron";
 
 export interface FileEntry {
   name: string;
@@ -413,6 +414,59 @@ export interface ElectronAPI {
     onInstallProgress?: (callback: (progress: any) => void) => () => void;
     onAuthProgress?: (callback: (progress: any) => void) => () => void;
   };
+  agent?: {
+    start: (sessionId: string, workingDirectory?: string) => Promise<{
+      success: boolean;
+      messages?: Message[];
+      error?: string;
+    }>;
+    send: (
+      sessionId: string,
+      message: string,
+      workingDirectory?: string,
+      imagePaths?: string[]
+    ) => Promise<{ success: boolean; error?: string }>;
+    getHistory: (sessionId: string) => Promise<{
+      success: boolean;
+      messages?: Message[];
+      isRunning?: boolean;
+      error?: string;
+    }>;
+    stop: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+    clear: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+    onStream: (callback: (data: unknown) => void) => () => void;
+  };
+  sessions?: {
+    list: (includeArchived?: boolean) => Promise<{
+      success: boolean;
+      sessions?: SessionListItem[];
+      error?: string;
+    }>;
+    create: (
+      name: string,
+      projectPath: string,
+      workingDirectory?: string
+    ) => Promise<{
+      success: boolean;
+      session?: {
+        id: string;
+        name: string;
+        projectPath: string;
+        workingDirectory?: string;
+        createdAt: string;
+        updatedAt: string;
+      };
+      error?: string;
+    }>;
+    update: (
+      sessionId: string,
+      name?: string,
+      tags?: string[]
+    ) => Promise<{ success: boolean; error?: string }>;
+    archive: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+    unarchive: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+    delete: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+  };
 }
 
 // Note: Window interface is declared in @/types/electron.d.ts
@@ -438,7 +492,7 @@ const STORAGE_KEYS = {
 // Mock file system using localStorage
 const mockFileSystem: Record<string, string> = {};
 
-// Check if we're in Electron
+// Check if we're in Electron (for UI indicators only)
 export const isElectron = (): boolean => {
   return typeof window !== "undefined" && window.isElectron === true;
 };
@@ -478,71 +532,49 @@ export const resetServerCheck = (): void => {
 // Cached HTTP client instance
 let httpClientInstance: ElectronAPI | null = null;
 
-// Check if we're in simplified Electron mode (HTTP backend instead of IPC)
-const isSimplifiedElectronMode = (): boolean => {
-  if (typeof window === "undefined") return false;
-  const api = window.electronAPI as any;
-  // Simplified mode has isElectron flag and getServerUrl but NOT readFile
-  return api?.isElectron === true &&
-         typeof api?.getServerUrl === "function" &&
-         typeof api?.readFile !== "function";
-};
-
-// Get the Electron API or HTTP client for web mode
-// In simplified Electron mode and web mode, uses HTTP client
+/**
+ * Get the HTTP API client
+ *
+ * All API calls go through HTTP to the backend server.
+ * This is the only transport mode supported.
+ */
 export const getElectronAPI = (): ElectronAPI => {
-  // Check if we're in simplified Electron mode (uses HTTP backend)
-  if (isSimplifiedElectronMode()) {
-    if (typeof window !== "undefined" && !httpClientInstance) {
-      const { getHttpApiClient } = require("./http-api-client");
-      httpClientInstance = getHttpApiClient();
-    }
-    return httpClientInstance!;
+  if (typeof window === "undefined") {
+    throw new Error("Cannot get API during SSR");
   }
 
-  // Full Electron API with IPC
-  if (isElectron() && window.electronAPI) {
-    return window.electronAPI;
+  if (!httpClientInstance) {
+    const { getHttpApiClient } = require("./http-api-client");
+    httpClientInstance = getHttpApiClient();
   }
-
-  // Web mode: use HTTP API client
-  if (typeof window !== "undefined") {
-    if (!httpClientInstance) {
-      const { getHttpApiClient } = require("./http-api-client");
-      httpClientInstance = getHttpApiClient();
-    }
-    return httpClientInstance!;
-  }
-
-  // SSR fallback - this shouldn't be called during actual operation
-  throw new Error("Cannot get Electron API during SSR");
+  return httpClientInstance!;
 };
 
-// Async version that checks server availability first
+// Async version (same as sync since HTTP client is synchronously instantiated)
 export const getElectronAPIAsync = async (): Promise<ElectronAPI> => {
-  // Simplified Electron mode or web mode: use HTTP client
-  if (isSimplifiedElectronMode() || !isElectron()) {
-    if (typeof window !== "undefined") {
-      const { getHttpApiClient } = await import("./http-api-client");
-      return getHttpApiClient();
-    }
-  }
-
-  // Full Electron API with IPC
-  if (isElectron() && window.electronAPI) {
-    return window.electronAPI;
-  }
-
-  throw new Error("Cannot get Electron API during SSR");
+  return getElectronAPI();
 };
 
 // Check if backend is connected (for showing connection status in UI)
 export const isBackendConnected = async (): Promise<boolean> => {
-  // Full Electron mode: backend is built-in
-  if (isElectron() && !isSimplifiedElectronMode()) return true;
-  // Simplified Electron or web mode: check server availability
   return await checkServerAvailable();
 };
+
+/**
+ * Get the current API mode being used
+ * Always returns "http" since that's the only mode now
+ */
+export const getCurrentApiMode = (): "http" => {
+  return "http";
+};
+
+// Debug helpers
+if (typeof window !== "undefined") {
+  (window as any).__checkApiMode = () => {
+    console.log("Current API mode:", getCurrentApiMode());
+    console.log("isElectron():", isElectron());
+  };
+}
 
 // Mock API for development/fallback when no backend is available
 const getMockElectronAPI = (): ElectronAPI => {
@@ -1962,7 +1994,9 @@ function createMockSpecRegenerationAPI(): SpecRegenerationAPI {
       }
 
       mockSpecRegenerationRunning = true;
-      console.log(`[Mock] Generating features from existing spec for: ${projectPath}`);
+      console.log(
+        `[Mock] Generating features from existing spec for: ${projectPath}`
+      );
 
       // Simulate async feature generation
       simulateFeatureGeneration(projectPath);
@@ -2149,7 +2183,8 @@ async function simulateFeatureGeneration(projectPath: string) {
   mockSpecRegenerationPhase = "initialization";
   emitSpecRegenerationEvent({
     type: "spec_regeneration_progress",
-    content: "[Phase: initialization] Starting feature generation from existing app_spec.txt...\n",
+    content:
+      "[Phase: initialization] Starting feature generation from existing app_spec.txt...\n",
   });
 
   await new Promise((resolve) => {

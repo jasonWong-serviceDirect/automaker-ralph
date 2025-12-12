@@ -220,11 +220,17 @@ export class AutoModeService {
           projectPath,
         });
       } else {
+        const errorMessage = (error as Error).message || "Unknown error";
+        const isAuthError = errorMessage.includes("Authentication failed") ||
+                           errorMessage.includes("Invalid API key") ||
+                           errorMessage.includes("authentication_failed");
+
         console.error(`[AutoMode] Feature ${featureId} failed:`, error);
         await this.updateFeatureStatus(projectPath, featureId, "failed");
         this.emitAutoModeEvent("auto_mode_error", {
           featureId,
-          error: (error as Error).message,
+          error: errorMessage,
+          errorType: isAuthError ? "authentication" : "execution",
           projectPath,
         });
       }
@@ -741,6 +747,17 @@ When done, summarize what you implemented and any notes for the developer.`;
         for (const block of msg.message.content) {
           if (block.type === "text") {
             responseText = block.text;
+
+            // Check for authentication errors in the response
+            if (block.text.includes("Invalid API key") ||
+                block.text.includes("authentication_failed") ||
+                block.text.includes("Fix external API key")) {
+              throw new Error(
+                "Authentication failed: Invalid or expired API key. " +
+                "Please check your ANTHROPIC_API_KEY or run 'claude login' to re-authenticate."
+              );
+            }
+
             this.emitAutoModeEvent("auto_mode_progress", {
               featureId,
               content: block.text,
@@ -753,7 +770,20 @@ When done, summarize what you implemented and any notes for the developer.`;
             });
           }
         }
+      } else if (msg.type === "assistant" && (msg as { error?: string }).error === "authentication_failed") {
+        // Handle authentication error from the SDK
+        throw new Error(
+          "Authentication failed: Invalid or expired API key. " +
+          "Please set a valid ANTHROPIC_API_KEY environment variable or run 'claude login' to authenticate."
+        );
       } else if (msg.type === "result" && msg.subtype === "success") {
+        // Check if result indicates an error
+        if (msg.is_error && msg.result?.includes("Invalid API key")) {
+          throw new Error(
+            "Authentication failed: Invalid or expired API key. " +
+            "Please set a valid ANTHROPIC_API_KEY environment variable or run 'claude login' to authenticate."
+          );
+        }
         responseText = msg.result || responseText;
       }
     }

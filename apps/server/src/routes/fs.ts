@@ -217,5 +217,103 @@ export function createFsRoutes(_events: EventEmitter): Router {
     }
   });
 
+  // Save image to .automaker/images directory
+  router.post("/save-image", async (req: Request, res: Response) => {
+    try {
+      const { data, filename, mimeType, projectPath } = req.body as {
+        data: string;
+        filename: string;
+        mimeType: string;
+        projectPath: string;
+      };
+
+      if (!data || !filename || !projectPath) {
+        res.status(400).json({
+          success: false,
+          error: "data, filename, and projectPath are required",
+        });
+        return;
+      }
+
+      // Create .automaker/images directory if it doesn't exist
+      const imagesDir = path.join(projectPath, ".automaker", "images");
+      await fs.mkdir(imagesDir, { recursive: true });
+
+      // Decode base64 data (remove data URL prefix if present)
+      const base64Data = data.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+
+      // Generate unique filename with timestamp
+      const timestamp = Date.now();
+      const ext = path.extname(filename) || ".png";
+      const baseName = path.basename(filename, ext);
+      const uniqueFilename = `${baseName}-${timestamp}${ext}`;
+      const filePath = path.join(imagesDir, uniqueFilename);
+
+      // Write file
+      await fs.writeFile(filePath, buffer);
+
+      // Add project path to allowed paths if not already
+      addAllowedPath(projectPath);
+
+      res.json({ success: true, path: filePath });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  // Serve image files
+  router.get("/image", async (req: Request, res: Response) => {
+    try {
+      const { path: imagePath, projectPath } = req.query as {
+        path?: string;
+        projectPath?: string;
+      };
+
+      if (!imagePath) {
+        res.status(400).json({ success: false, error: "path is required" });
+        return;
+      }
+
+      // Resolve full path
+      const fullPath = path.isAbsolute(imagePath)
+        ? imagePath
+        : projectPath
+          ? path.join(projectPath, imagePath)
+          : imagePath;
+
+      // Check if file exists
+      try {
+        await fs.access(fullPath);
+      } catch {
+        res.status(404).json({ success: false, error: "Image not found" });
+        return;
+      }
+
+      // Read the file
+      const buffer = await fs.readFile(fullPath);
+
+      // Determine MIME type from extension
+      const ext = path.extname(fullPath).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".webp": "image/webp",
+        ".svg": "image/svg+xml",
+        ".bmp": "image/bmp",
+      };
+
+      res.setHeader("Content-Type", mimeTypes[ext] || "application/octet-stream");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.send(buffer);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ success: false, error: message });
+    }
+  });
+
   return router;
 }

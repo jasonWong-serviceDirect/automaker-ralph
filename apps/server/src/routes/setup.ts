@@ -11,8 +11,45 @@ import fs from "fs/promises";
 
 const execAsync = promisify(exec);
 
-// Storage for API keys (in-memory for now, should be persisted)
+// Storage for API keys (in-memory cache)
 const apiKeys: Record<string, string> = {};
+
+// Helper to persist API keys to .env file
+async function persistApiKeyToEnv(key: string, value: string): Promise<void> {
+  const envPath = path.join(process.cwd(), ".env");
+
+  try {
+    let envContent = "";
+    try {
+      envContent = await fs.readFile(envPath, "utf-8");
+    } catch {
+      // .env file doesn't exist, we'll create it
+    }
+
+    // Parse existing env content
+    const lines = envContent.split("\n");
+    const keyRegex = new RegExp(`^${key}=`);
+    let found = false;
+    const newLines = lines.map((line) => {
+      if (keyRegex.test(line)) {
+        found = true;
+        return `${key}=${value}`;
+      }
+      return line;
+    });
+
+    if (!found) {
+      // Add the key at the end
+      newLines.push(`${key}=${value}`);
+    }
+
+    await fs.writeFile(envPath, newLines.join("\n"));
+    console.log(`[Setup] Persisted ${key} to .env file`);
+  } catch (error) {
+    console.error(`[Setup] Failed to persist ${key} to .env:`, error);
+    throw error;
+  }
+}
 
 export function createSetupRoutes(): Router {
   const router = Router();
@@ -301,13 +338,16 @@ export function createSetupRoutes(): Router {
 
       apiKeys[provider] = apiKey;
 
-      // Also set as environment variable
-      if (provider === "anthropic") {
+      // Also set as environment variable and persist to .env
+      if (provider === "anthropic" || provider === "anthropic_oauth_token") {
         process.env.ANTHROPIC_API_KEY = apiKey;
+        await persistApiKeyToEnv("ANTHROPIC_API_KEY", apiKey);
       } else if (provider === "openai") {
         process.env.OPENAI_API_KEY = apiKey;
+        await persistApiKeyToEnv("OPENAI_API_KEY", apiKey);
       } else if (provider === "google") {
         process.env.GOOGLE_API_KEY = apiKey;
+        await persistApiKeyToEnv("GOOGLE_API_KEY", apiKey);
       }
 
       res.json({ success: true });

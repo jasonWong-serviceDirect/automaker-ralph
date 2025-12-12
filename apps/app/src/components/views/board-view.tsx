@@ -583,10 +583,24 @@ export function BoardView() {
         }
 
         loadFeatures();
-        // Show error toast
-        toast.error("Agent encountered an error", {
-          description: event.error || "Check the logs for details",
-        });
+
+        // Check for authentication errors and show a more helpful message
+        const isAuthError = event.errorType === "authentication" ||
+                          (event.error && (
+                            event.error.includes("Authentication failed") ||
+                            event.error.includes("Invalid API key")
+                          ));
+
+        if (isAuthError) {
+          toast.error("Authentication Failed", {
+            description: "Your API key is invalid or expired. Please check Settings or run 'claude login' in terminal.",
+            duration: 10000,
+          });
+        } else {
+          toast.error("Agent encountered an error", {
+            description: event.error || "Check the logs for details",
+          });
+        }
       }
     });
 

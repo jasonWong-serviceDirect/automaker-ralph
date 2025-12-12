@@ -26,6 +26,123 @@ export class FeatureLoader {
   }
 
   /**
+   * Get the images directory path for a feature
+   */
+  getFeatureImagesDir(projectPath: string, featureId: string): string {
+    return path.join(this.getFeatureDir(projectPath, featureId), "images");
+  }
+
+  /**
+   * Delete images that were removed from a feature
+   */
+  private async deleteOrphanedImages(
+    projectPath: string,
+    oldPaths: Array<string | { path: string; [key: string]: unknown }> | undefined,
+    newPaths: Array<string | { path: string; [key: string]: unknown }> | undefined
+  ): Promise<void> {
+    if (!oldPaths || oldPaths.length === 0) {
+      return;
+    }
+
+    // Build sets of paths for comparison
+    const oldPathSet = new Set(
+      oldPaths.map((p) => (typeof p === "string" ? p : p.path))
+    );
+    const newPathSet = new Set(
+      (newPaths || []).map((p) => (typeof p === "string" ? p : p.path))
+    );
+
+    // Find images that were removed
+    for (const oldPath of oldPathSet) {
+      if (!newPathSet.has(oldPath)) {
+        try {
+          const fullPath = path.isAbsolute(oldPath)
+            ? oldPath
+            : path.join(projectPath, oldPath);
+
+          await fs.unlink(fullPath);
+          console.log(`[FeatureLoader] Deleted orphaned image: ${oldPath}`);
+        } catch (error) {
+          // Ignore errors when deleting (file may already be gone)
+          console.warn(`[FeatureLoader] Failed to delete image: ${oldPath}`, error);
+        }
+      }
+    }
+  }
+
+  /**
+   * Copy images from temp directory to feature directory and update paths
+   */
+  private async migrateImages(
+    projectPath: string,
+    featureId: string,
+    imagePaths?: Array<string | { path: string; [key: string]: unknown }>
+  ): Promise<Array<string | { path: string; [key: string]: unknown }> | undefined> {
+    if (!imagePaths || imagePaths.length === 0) {
+      return imagePaths;
+    }
+
+    const featureImagesDir = this.getFeatureImagesDir(projectPath, featureId);
+    await fs.mkdir(featureImagesDir, { recursive: true });
+
+    const updatedPaths: Array<string | { path: string; [key: string]: unknown }> = [];
+
+    for (const imagePath of imagePaths) {
+      try {
+        const originalPath = typeof imagePath === "string" ? imagePath : imagePath.path;
+
+        // Skip if already in feature directory
+        if (originalPath.includes(`/features/${featureId}/images/`)) {
+          updatedPaths.push(imagePath);
+          continue;
+        }
+
+        // Resolve the full path
+        const fullOriginalPath = path.isAbsolute(originalPath)
+          ? originalPath
+          : path.join(projectPath, originalPath);
+
+        // Check if file exists
+        try {
+          await fs.access(fullOriginalPath);
+        } catch {
+          console.warn(`[FeatureLoader] Image not found, skipping: ${fullOriginalPath}`);
+          continue;
+        }
+
+        // Get filename and create new path
+        const filename = path.basename(originalPath);
+        const newPath = path.join(featureImagesDir, filename);
+        const relativePath = `.automaker/features/${featureId}/images/${filename}`;
+
+        // Copy the file
+        await fs.copyFile(fullOriginalPath, newPath);
+        console.log(`[FeatureLoader] Copied image: ${originalPath} -> ${relativePath}`);
+
+        // Try to delete the original temp file
+        try {
+          await fs.unlink(fullOriginalPath);
+        } catch {
+          // Ignore errors when deleting temp file
+        }
+
+        // Update the path in the result
+        if (typeof imagePath === "string") {
+          updatedPaths.push(relativePath);
+        } else {
+          updatedPaths.push({ ...imagePath, path: relativePath });
+        }
+      } catch (error) {
+        console.error(`[FeatureLoader] Failed to migrate image:`, error);
+        // Keep original path if migration fails
+        updatedPaths.push(imagePath);
+      }
+    }
+
+    return updatedPaths;
+  }
+
+  /**
    * Get the path to a specific feature folder
    */
   getFeatureDir(projectPath: string, featureId: string): string {
@@ -151,12 +268,20 @@ export class FeatureLoader {
     // Create feature directory
     await fs.mkdir(featureDir, { recursive: true });
 
+    // Migrate images from temp directory to feature directory
+    const migratedImagePaths = await this.migrateImages(
+      projectPath,
+      featureId,
+      featureData.imagePaths
+    );
+
     // Ensure feature has required fields
     const feature: Feature = {
       category: featureData.category || "Uncategorized",
       description: featureData.description || "",
       ...featureData,
       id: featureId,
+      imagePaths: migratedImagePaths,
     };
 
     // Write feature.json
@@ -179,8 +304,30 @@ export class FeatureLoader {
       throw new Error(`Feature ${featureId} not found`);
     }
 
+    // Handle image path changes
+    let updatedImagePaths = updates.imagePaths;
+    if (updates.imagePaths !== undefined) {
+      // Delete orphaned images (images that were removed)
+      await this.deleteOrphanedImages(
+        projectPath,
+        feature.imagePaths,
+        updates.imagePaths
+      );
+
+      // Migrate any new images
+      updatedImagePaths = await this.migrateImages(
+        projectPath,
+        featureId,
+        updates.imagePaths
+      );
+    }
+
     // Merge updates
-    const updatedFeature: Feature = { ...feature, ...updates };
+    const updatedFeature: Feature = {
+      ...feature,
+      ...updates,
+      ...(updatedImagePaths !== undefined ? { imagePaths: updatedImagePaths } : {}),
+    };
 
     // Write back to file
     const featureJsonPath = this.getFeatureJsonPath(projectPath, featureId);
