@@ -46,5 +46,10 @@ jobs:
             @rollup/rollup-linux-x64-gnu@4.53.3 \
             @tailwindcss/oxide-linux-x64-gnu@4.1.17
 
+      - name: Rebuild native modules for Electron
+        # Rebuild node-pty and other native modules for Electron after npm install --ignore-scripts
+        # Avoids using electron-builder install-app-deps to prevent OOM issues
+        run: npm rebuild node-pty
+
       - name: Run build:electron (dir only - faster CI)
         run: npm run build:electron:dir

@@ -43,6 +43,12 @@ jobs:
             @rollup/rollup-linux-x64-gnu@4.53.3 \
             @tailwindcss/oxide-linux-x64-gnu@4.1.17
 
+      - name: Rebuild native modules
+        # Rebuild node-pty and other native modules needed for server
+        # This is separate from electron-builder install-app-deps to avoid OOM
+        run: npm rebuild node-pty
+        working-directory: apps/server
+
       - name: Run server tests with coverage
         run: npm run test:server:coverage
         env:
