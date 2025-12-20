@@ -6,7 +6,6 @@ import {
   RotateCcw,
   StopCircle,
   CheckCircle2,
-  GitCommit,
   FileText,
   Eye,
   Wand2,
@@ -25,7 +24,6 @@ interface CardActionsProps {
   onForceStop?: () => void;
   onManualVerify?: () => void;
   onFollowUp?: () => void;
-  onCommit?: () => void;
   onImplement?: () => void;
   onComplete?: () => void;
   onViewPlan?: () => void;
@@ -44,7 +42,6 @@ export function CardActions({
   onForceStop,
   onManualVerify,
   onFollowUp,
-  onCommit,
   onImplement,
   onComplete,
   onViewPlan,
@@ -251,7 +248,7 @@ export function CardActions({
               <span className="truncate">Refine</span>
             </Button>
           )}
-          {/* Show Verify button if PR was created (changes are committed), otherwise show Commit button */}
+          {/* Show Verify button if PR was created (changes are committed), otherwise show Mark as Verified button */}
           {feature.prUrl && onManualVerify ? (
             <Button
               variant="default"
@@ -267,20 +264,20 @@ export function CardActions({
               <CheckCircle2 className="w-3 h-3 mr-1" />
               Verify
             </Button>
-          ) : onCommit ? (
+          ) : onManualVerify ? (
             <Button
               variant="default"
               size="sm"
               className="flex-1 h-7 text-[11px]"
               onClick={(e) => {
                 e.stopPropagation();
-                onCommit();
+                onManualVerify();
               }}
               onPointerDown={(e) => e.stopPropagation()}
-              data-testid={`commit-${feature.id}`}
+              data-testid={`mark-as-verified-${feature.id}`}
             >
-              <GitCommit className="w-3 h-3 mr-1" />
-              Commit
+              <CheckCircle2 className="w-3 h-3 mr-1" />
+              Mark as Verified
             </Button>
           ) : null}
         </>
@@ -338,4 +335,3 @@ export function CardActions({
     </div>
   );
 }
-

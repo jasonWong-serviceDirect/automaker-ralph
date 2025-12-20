@@ -21,7 +21,6 @@ interface KanbanCardProps {
   onManualVerify?: () => void;
   onMoveBackToInProgress?: () => void;
   onFollowUp?: () => void;
-  onCommit?: () => void;
   onImplement?: () => void;
   onComplete?: () => void;
   onViewPlan?: () => void;
@@ -48,7 +47,6 @@ export const KanbanCard = memo(function KanbanCard({
   onManualVerify,
   onMoveBackToInProgress: _onMoveBackToInProgress,
   onFollowUp,
-  onCommit,
   onImplement,
   onComplete,
   onViewPlan,
@@ -198,7 +196,6 @@ export const KanbanCard = memo(function KanbanCard({
           onForceStop={onForceStop}
           onManualVerify={onManualVerify}
           onFollowUp={onFollowUp}
-          onCommit={onCommit}
           onImplement={onImplement}
           onComplete={onComplete}
           onViewPlan={onViewPlan}
