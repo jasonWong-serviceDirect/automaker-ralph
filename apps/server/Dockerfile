@@ -9,19 +9,27 @@ RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
-# Copy package files and scripts needed for postinstall
+# Copy package files for all workspaces
 COPY package*.json ./
 COPY apps/server/package*.json ./apps/server/
+COPY libs/types/package*.json ./libs/types/
+COPY libs/utils/package*.json ./libs/utils/
+COPY libs/prompts/package*.json ./libs/prompts/
+COPY libs/platform/package*.json ./libs/platform/
+COPY libs/model-resolver/package*.json ./libs/model-resolver/
+COPY libs/dependency-resolver/package*.json ./libs/dependency-resolver/
+COPY libs/git-utils/package*.json ./libs/git-utils/
 COPY scripts ./scripts
 
-# Install dependencies
-RUN npm ci --workspace=apps/server
+# Install dependencies (--ignore-scripts to skip husky and build:packages in prepare script)
+RUN npm ci --ignore-scripts
 
-# Copy source
+# Copy all source files
+COPY libs ./libs
 COPY apps/server ./apps/server
 
-# Build TypeScript
-RUN npm run build --workspace=apps/server
+# Build packages in dependency order, then build server
+RUN npm run build:packages && npm run build --workspace=apps/server
 
 # Production stage
 FROM node:20-alpine
