@@ -49,6 +49,34 @@ export const issueValidationSchema = {
       enum: ['trivial', 'simple', 'moderate', 'complex', 'very_complex'],
       description: 'Estimated effort to address the issue',
     },
+    prAnalysis: {
+      type: 'object',
+      properties: {
+        hasOpenPR: {
+          type: 'boolean',
+          description: 'Whether there is an open PR linked to this issue',
+        },
+        prFixesIssue: {
+          type: 'boolean',
+          description: 'Whether the PR appears to fix the issue based on the diff',
+        },
+        prNumber: {
+          type: 'number',
+          description: 'The PR number that was analyzed',
+        },
+        prSummary: {
+          type: 'string',
+          description: 'Brief summary of what the PR changes',
+        },
+        recommendation: {
+          type: 'string',
+          enum: ['wait_for_merge', 'pr_needs_work', 'no_pr'],
+          description:
+            'Recommendation: wait for PR to merge, PR needs more work, or no relevant PR',
+        },
+      },
+      description: 'Analysis of linked pull requests if any exist',
+    },
   },
   required: ['verdict', 'confidence', 'reasoning'],
   additionalProperties: false,
@@ -67,7 +95,8 @@ Your task is to analyze a GitHub issue and determine if it's valid by scanning t
 1. **Read the issue carefully** - Understand what is being reported or requested
 2. **Search the codebase** - Use Glob to find relevant files by pattern, Grep to search for keywords
 3. **Examine the code** - Use Read to look at the actual implementation in relevant files
-4. **Form your verdict** - Based on your analysis, determine if the issue is valid
+4. **Check linked PRs** - If there are linked pull requests, use \`gh pr diff <PR_NUMBER>\` to review the changes
+5. **Form your verdict** - Based on your analysis, determine if the issue is valid
 
 ## Verdicts
 
@@ -88,12 +117,32 @@ Your task is to analyze a GitHub issue and determine if it's valid by scanning t
 - Is the implementation location clear?
 - Is the request technically feasible given the codebase structure?
 
+## Analyzing Linked Pull Requests
+
+When an issue has linked PRs (especially open ones), you MUST analyze them:
+
+1. **Run \`gh pr diff <PR_NUMBER>\`** to see what changes the PR makes
+2. **Run \`gh pr view <PR_NUMBER>\`** to see PR description and status
+3. **Evaluate if the PR fixes the issue** - Does the diff address the reported problem?
+4. **Provide a recommendation**:
+   - \`wait_for_merge\`: The PR appears to fix the issue correctly. No additional work needed - just wait for it to be merged.
+   - \`pr_needs_work\`: The PR attempts to fix the issue but is incomplete or has problems.
+   - \`no_pr\`: No relevant PR exists for this issue.
+
+5. **Include prAnalysis in your response** with:
+   - hasOpenPR: true/false
+   - prFixesIssue: true/false (based on diff analysis)
+   - prNumber: the PR number you analyzed
+   - prSummary: brief description of what the PR changes
+   - recommendation: one of the above values
+
 ## Response Guidelines
 
 - **Always include relatedFiles** when you find relevant code
 - **Set bugConfirmed to true** only if you can definitively confirm a bug exists in the code
 - **Provide a suggestedFix** when you have a clear idea of how to address the issue
 - **Use missingInfo** when the verdict is needs_clarification to list what's needed
+- **Include prAnalysis** when there are linked PRs - this is critical for avoiding duplicate work
 - **Set estimatedComplexity** to help prioritize:
   - trivial: Simple text changes, one-line fixes
   - simple: Small changes to one file

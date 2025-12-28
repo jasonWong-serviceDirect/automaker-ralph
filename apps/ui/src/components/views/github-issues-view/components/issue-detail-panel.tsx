@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Markdown } from '@/components/ui/markdown';
 import { cn } from '@/lib/utils';
 import type { IssueDetailPanelProps } from '../types';
@@ -291,12 +292,10 @@ export function IssueDetailPanel({
               )}
             </button>
             {comments.length > 0 && (
-              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-                <input
-                  type="checkbox"
+              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                <Checkbox
                   checked={includeCommentsInAnalysis}
-                  onChange={(e) => setIncludeCommentsInAnalysis(e.target.checked)}
-                  className="h-3 w-3 rounded border-border"
+                  onCheckedChange={setIncludeCommentsInAnalysis}
                 />
                 Include in AI analysis
               </label>

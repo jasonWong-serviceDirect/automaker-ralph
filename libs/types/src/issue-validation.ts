@@ -22,6 +22,27 @@ export type IssueValidationConfidence = 'high' | 'medium' | 'low';
 export type IssueComplexity = 'trivial' | 'simple' | 'moderate' | 'complex' | 'very_complex';
 
 /**
+ * Recommendation for PR-related action
+ */
+export type PRRecommendation = 'wait_for_merge' | 'pr_needs_work' | 'no_pr';
+
+/**
+ * Analysis of a linked pull request
+ */
+export interface PRAnalysis {
+  /** Whether there is an open PR linked to this issue */
+  hasOpenPR: boolean;
+  /** Whether the PR appears to fix the issue based on the diff */
+  prFixesIssue?: boolean;
+  /** The PR number that was analyzed */
+  prNumber?: number;
+  /** Brief summary of what the PR changes */
+  prSummary?: string;
+  /** Recommendation: wait for PR to merge, PR needs more work, or no relevant PR */
+  recommendation: PRRecommendation;
+}
+
+/**
  * Linked PR info for validation
  */
 export interface LinkedPRInfo {
@@ -73,6 +94,8 @@ export interface IssueValidationResult {
   missingInfo?: string[];
   /** Estimated effort to address the issue */
   estimatedComplexity?: IssueComplexity;
+  /** Analysis of linked pull requests (if any) */
+  prAnalysis?: PRAnalysis;
 }
 
 /**

@@ -87,6 +87,8 @@ export type {
   IssueValidationVerdict,
   IssueValidationConfidence,
   IssueComplexity,
+  PRRecommendation,
+  PRAnalysis,
   LinkedPRInfo,
   IssueValidationInput,
   IssueValidationRequest,
