@@ -4,6 +4,7 @@
 
 import type { SettingsService } from '../services/settings-service.js';
 import type { ContextFilesResult, ContextFileInfo } from '@automaker/utils';
+import { createLogger } from '@automaker/utils';
 import type { MCPServerConfig, McpServerConfig, PromptCustomization } from '@automaker/types';
 import {
   mergeAutoModePrompts,
@@ -11,6 +12,8 @@ import {
   mergeBacklogPlanPrompts,
   mergeEnhancementPrompts,
 } from '@automaker/prompts';
+
+const logger = createLogger('SettingsHelper');
 
 /**
  * Get the autoLoadClaudeMd setting, with project settings taking precedence over global.
@@ -27,7 +30,7 @@ export async function getAutoLoadClaudeMdSetting(
   logPrefix = '[SettingsHelper]'
 ): Promise<boolean> {
   if (!settingsService) {
-    console.log(`${logPrefix} SettingsService not available, autoLoadClaudeMd disabled`);
+    logger.info(`${logPrefix} SettingsService not available, autoLoadClaudeMd disabled`);
     return false;
   }
 
@@ -35,7 +38,7 @@ export async function getAutoLoadClaudeMdSetting(
     // Check project settings first (takes precedence)
     const projectSettings = await settingsService.getProjectSettings(projectPath);
     if (projectSettings.autoLoadClaudeMd !== undefined) {
-      console.log(
+      logger.info(
         `${logPrefix} autoLoadClaudeMd from project settings: ${projectSettings.autoLoadClaudeMd}`
       );
       return projectSettings.autoLoadClaudeMd;
@@ -44,10 +47,10 @@ export async function getAutoLoadClaudeMdSetting(
     // Fall back to global settings
     const globalSettings = await settingsService.getGlobalSettings();
     const result = globalSettings.autoLoadClaudeMd ?? false;
-    console.log(`${logPrefix} autoLoadClaudeMd from global settings: ${result}`);
+    logger.info(`${logPrefix} autoLoadClaudeMd from global settings: ${result}`);
     return result;
   } catch (error) {
-    console.error(`${logPrefix} Failed to load autoLoadClaudeMd setting:`, error);
+    logger.error(`${logPrefix} Failed to load autoLoadClaudeMd setting:`, error);
     throw error;
   }
 }
@@ -65,17 +68,17 @@ export async function getEnableSandboxModeSetting(
   logPrefix = '[SettingsHelper]'
 ): Promise<boolean> {
   if (!settingsService) {
-    console.log(`${logPrefix} SettingsService not available, sandbox mode disabled`);
+    logger.info(`${logPrefix} SettingsService not available, sandbox mode disabled`);
     return false;
   }
 
   try {
     const globalSettings = await settingsService.getGlobalSettings();
     const result = globalSettings.enableSandboxMode ?? true;
-    console.log(`${logPrefix} enableSandboxMode from global settings: ${result}`);
+    logger.info(`${logPrefix} enableSandboxMode from global settings: ${result}`);
     return result;
   } catch (error) {
-    console.error(`${logPrefix} Failed to load enableSandboxMode setting:`, error);
+    logger.error(`${logPrefix} Failed to load enableSandboxMode setting:`, error);
     throw error;
   }
 }
@@ -177,13 +180,13 @@ export async function getMCPServersFromSettings(
       sdkServers[server.name] = convertToSdkFormat(server);
     }
 
-    console.log(
+    logger.info(
       `${logPrefix} Loaded ${enabledServers.length} MCP server(s): ${enabledServers.map((s) => s.name).join(', ')}`
     );
 
     return sdkServers;
   } catch (error) {
-    console.error(`${logPrefix} Failed to load MCP servers setting:`, error);
+    logger.error(`${logPrefix} Failed to load MCP servers setting:`, error);
     return {};
   }
 }
@@ -213,12 +216,12 @@ export async function getMCPPermissionSettings(
       mcpAutoApproveTools: globalSettings.mcpAutoApproveTools ?? true,
       mcpUnrestrictedTools: globalSettings.mcpUnrestrictedTools ?? true,
     };
-    console.log(
+    logger.info(
       `${logPrefix} MCP permission settings: autoApprove=${result.mcpAutoApproveTools}, unrestricted=${result.mcpUnrestrictedTools}`
     );
     return result;
   } catch (error) {
-    console.error(`${logPrefix} Failed to load MCP permission settings:`, error);
+    logger.error(`${logPrefix} Failed to load MCP permission settings:`, error);
     return defaults;
   }
 }
@@ -285,13 +288,13 @@ export async function getPromptCustomization(
     try {
       const globalSettings = await settingsService.getGlobalSettings();
       customization = globalSettings.promptCustomization || {};
-      console.log(`${logPrefix} Loaded prompt customization from settings`);
+      logger.info(`${logPrefix} Loaded prompt customization from settings`);
     } catch (error) {
-      console.error(`${logPrefix} Failed to load prompt customization:`, error);
+      logger.error(`${logPrefix} Failed to load prompt customization:`, error);
       // Fall through to use empty customization (all defaults)
     }
   } else {
-    console.log(`${logPrefix} SettingsService not available, using default prompts`);
+    logger.info(`${logPrefix} SettingsService not available, using default prompts`);
   }
 
   return {
