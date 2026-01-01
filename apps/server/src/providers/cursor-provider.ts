@@ -959,7 +959,6 @@ export class CursorProvider extends CliProvider {
       modelString: id,
       provider: 'cursor',
       description: config.description,
-      tier: config.tier === 'pro' ? ('premium' as const) : ('basic' as const),
       supportsTools: true,
       supportsVision: false,
     }));

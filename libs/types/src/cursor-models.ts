@@ -30,7 +30,6 @@ export interface CursorModelConfig {
   label: string;
   description: string;
   hasThinking: boolean;
-  tier: 'free' | 'pro';
 }
 
 /**
@@ -42,126 +41,108 @@ export const CURSOR_MODEL_MAP: Record<CursorModelId, CursorModelConfig> = {
     label: 'Auto (Recommended)',
     description: 'Automatically selects the best model for each task',
     hasThinking: false,
-    tier: 'free',
   },
   'composer-1': {
     id: 'composer-1',
     label: 'Composer 1',
     description: 'Cursor Composer agent model optimized for multi-file edits',
     hasThinking: false,
-    tier: 'pro',
   },
   'sonnet-4.5': {
     id: 'sonnet-4.5',
     label: 'Claude Sonnet 4.5',
     description: 'Anthropic Claude Sonnet 4.5 via Cursor',
     hasThinking: false,
-    tier: 'pro',
   },
   'sonnet-4.5-thinking': {
     id: 'sonnet-4.5-thinking',
     label: 'Claude Sonnet 4.5 (Thinking)',
     description: 'Claude Sonnet 4.5 with extended thinking enabled',
     hasThinking: true,
-    tier: 'pro',
   },
   'opus-4.5': {
     id: 'opus-4.5',
     label: 'Claude Opus 4.5',
     description: 'Anthropic Claude Opus 4.5 via Cursor',
     hasThinking: false,
-    tier: 'pro',
   },
   'opus-4.5-thinking': {
     id: 'opus-4.5-thinking',
     label: 'Claude Opus 4.5 (Thinking)',
     description: 'Claude Opus 4.5 with extended thinking enabled',
     hasThinking: true,
-    tier: 'pro',
   },
   'opus-4.1': {
     id: 'opus-4.1',
     label: 'Claude Opus 4.1',
     description: 'Anthropic Claude Opus 4.1 via Cursor',
     hasThinking: false,
-    tier: 'pro',
   },
   'gemini-3-pro': {
     id: 'gemini-3-pro',
     label: 'Gemini 3 Pro',
     description: 'Google Gemini 3 Pro via Cursor',
     hasThinking: false,
-    tier: 'pro',
   },
   'gemini-3-flash': {
     id: 'gemini-3-flash',
     label: 'Gemini 3 Flash',
     description: 'Google Gemini 3 Flash (faster)',
     hasThinking: false,
-    tier: 'pro',
   },
   'gpt-5.2': {
     id: 'gpt-5.2',
     label: 'GPT-5.2',
     description: 'OpenAI GPT-5.2 via Cursor',
     hasThinking: false,
-    tier: 'pro',
   },
   'gpt-5.1': {
     id: 'gpt-5.1',
     label: 'GPT-5.1',
     description: 'OpenAI GPT-5.1 via Cursor',
     hasThinking: false,
-    tier: 'pro',
   },
   'gpt-5.2-high': {
     id: 'gpt-5.2-high',
     label: 'GPT-5.2 High',
     description: 'OpenAI GPT-5.2 with high compute',
     hasThinking: false,
-    tier: 'pro',
   },
   'gpt-5.1-high': {
     id: 'gpt-5.1-high',
     label: 'GPT-5.1 High',
     description: 'OpenAI GPT-5.1 with high compute',
     hasThinking: false,
-    tier: 'pro',
   },
   'gpt-5.1-codex': {
     id: 'gpt-5.1-codex',
     label: 'GPT-5.1 Codex',
     description: 'OpenAI GPT-5.1 Codex for code generation',
     hasThinking: false,
-    tier: 'pro',
   },
   'gpt-5.1-codex-high': {
     id: 'gpt-5.1-codex-high',
     label: 'GPT-5.1 Codex High',
     description: 'OpenAI GPT-5.1 Codex with high compute',
     hasThinking: false,
-    tier: 'pro',
   },
   'gpt-5.1-codex-max': {
     id: 'gpt-5.1-codex-max',
     label: 'GPT-5.1 Codex Max',
     description: 'OpenAI GPT-5.1 Codex Max capacity',
     hasThinking: false,
-    tier: 'pro',
   },
   'gpt-5.1-codex-max-high': {
     id: 'gpt-5.1-codex-max-high',
     label: 'GPT-5.1 Codex Max High',
     description: 'OpenAI GPT-5.1 Codex Max with high compute',
     hasThinking: false,
-    tier: 'pro',
   },
   grok: {
     id: 'grok',
     label: 'Grok',
     description: 'xAI Grok via Cursor',
     hasThinking: false,
-    tier: 'pro',
   },
 };
 

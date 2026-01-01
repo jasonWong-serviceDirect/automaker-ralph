@@ -180,14 +180,6 @@ export function ModelSelector({
                           Thinking
                         </Badge>
                       )}
-                      {option.tier && (
-                        <Badge
-                          variant={option.tier === 'free' ? 'default' : 'secondary'}
-                          className={cn('text-xs', isSelected && 'bg-primary-foreground/20')}
-                        >
-                          {option.tier}
-                        </Badge>
-                      )}
                     </div>
                   </button>
                 );

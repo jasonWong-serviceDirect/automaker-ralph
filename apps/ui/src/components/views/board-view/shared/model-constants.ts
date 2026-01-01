@@ -10,7 +10,6 @@ export type ModelOption = {
   badge?: string;
   provider: ModelProvider;
   hasThinking?: boolean;
-  tier?: 'free' | 'pro';
 };
 
 export const CLAUDE_MODELS: ModelOption[] = [
@@ -48,7 +47,6 @@ export const CURSOR_MODELS: ModelOption[] = Object.entries(CURSOR_MODEL_MAP).map
     description: config.description,
     provider: 'cursor' as ModelProvider,
     hasThinking: config.hasThinking,
-    tier: config.tier,
   })
 );
 

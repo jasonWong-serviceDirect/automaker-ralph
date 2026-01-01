@@ -114,11 +114,6 @@ export function AgentModelSelector({
                         Thinking
                       </span>
                     )}
-                    {model.tier === 'pro' && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                        Pro
-                      </span>
-                    )}
                   </div>
                   <span className="text-xs text-muted-foreground">{model.description}</span>
                 </div>

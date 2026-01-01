@@ -117,9 +117,6 @@ export function CursorModelConfiguration({
                       <p className="text-xs text-muted-foreground">{model.description}</p>
                     </div>
                   </div>
-                  <Badge variant={model.tier === 'free' ? 'default' : 'secondary'}>
-                    {model.tier}
-                  </Badge>
                 </div>
               );
             })}
