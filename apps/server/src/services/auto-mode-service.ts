@@ -2176,8 +2176,17 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
     const enableSandboxMode = await getEnableSandboxModeSetting(this.settingsService, '[AutoMode]');
 
     // Load MCP servers from settings (global setting only)
-    // Project-specific MCP servers (like chrome-devtools) should be in the project's .mcp.json
-    const mcpServers = await getMCPServersFromSettings(this.settingsService, '[AutoMode]');
+    const baseMcpServers = await getMCPServersFromSettings(this.settingsService, '[AutoMode]');
+
+    // Add per-feature Chrome MCP with isolated user-data-dir
+    const mcpServers = {
+      ...baseMcpServers,
+      [`chrome-${featureId}`]: {
+        type: 'stdio' as const,
+        command: 'npx',
+        args: ['chrome-devtools-mcp@latest', `--user-data-dir=/tmp/automaker-chrome/${featureId}`],
+      },
+    };
 
     // Try to load test credentials and get auth session for Chrome
     let supabaseSession: SupabaseSession | null = null;
