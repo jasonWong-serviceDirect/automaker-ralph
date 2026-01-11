@@ -54,6 +54,7 @@ export interface Feature {
   error?: string;
   summary?: string;
   startedAt?: string;
+  completionReason?: 'converged' | 'max_iterations' | 'error' | 'aborted';
   [key: string]: unknown; // Keep catch-all for extensibility
 }
 

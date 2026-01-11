@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Feature, useAppStore } from '@/store/app-store';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertCircle, Lock, Hand, Sparkles } from 'lucide-react';
+import { AlertCircle, Lock, Hand, Sparkles, CheckCircle2, Clock } from 'lucide-react';
 import { getBlockingDependencies } from '@automaker/dependency-resolver';
 
 interface CardBadgeProps {
@@ -161,10 +161,15 @@ export function PriorityBadges({ feature }: PriorityBadgesProps) {
     };
   }, [feature.justFinishedAt, feature.status, currentTime]);
 
+  const showCompletionReason =
+    feature.completionReason &&
+    (feature.status === 'waiting_approval' || feature.status === 'verified');
+
   const showPriorityBadges =
     feature.priority ||
     (feature.skipTests && !feature.error && feature.status === 'backlog') ||
-    isJustFinished;
+    isJustFinished ||
+    showCompletionReason;
 
   if (!showPriorityBadges) {
     return null;
@@ -238,6 +243,37 @@ export function PriorityBadges({ feature }: PriorityBadgesProps) {
         >
           <Sparkles className="w-3 h-3" />
         </CardBadge>
+      )}
+
+      {/* Completion reason badge */}
+      {showCompletionReason && (
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <CardBadge
+                className={cn(
+                  feature.completionReason === 'converged'
+                    ? 'bg-[var(--status-success-bg)] border-[var(--status-success)]/40 text-[var(--status-success)]'
+                    : 'bg-[var(--status-warning-bg)] border-[var(--status-warning)]/40 text-[var(--status-warning)]'
+                )}
+                data-testid={`completion-reason-badge-${feature.id}`}
+              >
+                {feature.completionReason === 'converged' ? (
+                  <CheckCircle2 className="w-3 h-3" />
+                ) : (
+                  <Clock className="w-3 h-3" />
+                )}
+              </CardBadge>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              <p>
+                {feature.completionReason === 'converged'
+                  ? 'Agent completed with DONE signal'
+                  : 'Agent hit max iterations'}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
     </div>
   );

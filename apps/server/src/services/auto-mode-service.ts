@@ -621,6 +621,8 @@ export class AutoModeService {
       const errorInfo = classifyError(error);
 
       if (errorInfo.isAbort) {
+        // Set completion reason to aborted
+        await this.updateFeatureCompletionReason(projectPath, featureId, 'aborted');
         this.emitAutoModeEvent('auto_mode_feature_complete', {
           featureId,
           passes: false,
@@ -629,6 +631,8 @@ export class AutoModeService {
         });
       } else {
         logger.error(`Feature ${featureId} failed:`, error);
+        // Set completion reason to error before updating status
+        await this.updateFeatureCompletionReason(projectPath, featureId, 'error');
         await this.updateFeatureStatus(projectPath, featureId, 'backlog');
         this.emitAutoModeEvent('auto_mode_error', {
           featureId,
@@ -1710,6 +1714,27 @@ Format your response as a structured markdown document.`;
   }
 
   /**
+   * Update the completion reason of a feature
+   */
+  private async updateFeatureCompletionReason(
+    projectPath: string,
+    featureId: string,
+    completionReason: 'converged' | 'max_iterations' | 'error' | 'aborted'
+  ): Promise<void> {
+    const featureDir = getFeatureDir(projectPath, featureId);
+    const featurePath = path.join(featureDir, 'feature.json');
+
+    try {
+      const data = (await secureFs.readFile(featurePath, 'utf-8')) as string;
+      const feature = JSON.parse(data);
+      feature.completionReason = completionReason;
+      await secureFs.writeFile(featurePath, JSON.stringify(feature, null, 2));
+    } catch {
+      logger.warn(`Could not update completion reason for feature ${featureId}`);
+    }
+  }
+
+  /**
    * Update the planSpec of a feature
    */
   private async updateFeaturePlanSpec(
@@ -2722,6 +2747,14 @@ Implement all the changes described in the plan above.`;
           logger.error(`Failed to write final raw output for ${featureId}:`, error);
         }
       }
+
+      // Detect completion reason: did agent output DONE or hit max iterations?
+      const converged = responseText.includes('<promise>DONE</promise>');
+      await this.updateFeatureCompletionReason(
+        projectPath,
+        featureId,
+        converged ? 'converged' : 'max_iterations'
+      );
     } finally {
       // ALWAYS clear pending timeouts to prevent memory leaks
       // This runs on success, error, or abort
