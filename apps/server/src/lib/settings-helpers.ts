@@ -10,6 +10,7 @@ import {
   mergeAutoModePrompts,
   mergeAgentPrompts,
   mergeBacklogPlanPrompts,
+  mergeBacklogModifyPrompts,
   mergeEnhancementPrompts,
 } from '@automaker/prompts';
 
@@ -245,6 +246,7 @@ export async function getPromptCustomization(
   autoMode: ReturnType<typeof mergeAutoModePrompts>;
   agent: ReturnType<typeof mergeAgentPrompts>;
   backlogPlan: ReturnType<typeof mergeBacklogPlanPrompts>;
+  backlogModify: ReturnType<typeof mergeBacklogModifyPrompts>;
   enhancement: ReturnType<typeof mergeEnhancementPrompts>;
 }> {
   let customization: PromptCustomization = {};
@@ -266,6 +268,7 @@ export async function getPromptCustomization(
     autoMode: mergeAutoModePrompts(customization.autoMode),
     agent: mergeAgentPrompts(customization.agent),
     backlogPlan: mergeBacklogPlanPrompts(customization.backlogPlan),
+    backlogModify: mergeBacklogModifyPrompts(customization.backlogModify),
     enhancement: mergeEnhancementPrompts(customization.enhancement),
   };
 }

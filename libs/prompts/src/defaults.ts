@@ -443,6 +443,77 @@ export const DEFAULT_BACKLOG_PLAN_PROMPTS: ResolvedBacklogPlanPrompts = {
 
 /**
  * ========================================================================
+ * BACKLOG MODIFY PROMPTS
+ * ========================================================================
+ */
+
+export const DEFAULT_BACKLOG_MODIFY_SYSTEM_PROMPT = `You are an AI assistant helping to modify existing features in a software project's backlog.
+You will be given a list of features that are currently in "backlog" or "in_progress" status, and user instructions for how to modify them.
+
+IMPORTANT CONSTRAINTS:
+- You can ONLY UPDATE existing features. You cannot add new features or delete features.
+- Only features with status "backlog" or "in_progress" will be shown to you
+- Apply the user's modification instructions to each relevant feature
+
+Your task is to analyze the user's modification request and produce a structured JSON plan with updates to existing features.
+
+Respond with ONLY a JSON object in this exact format:
+\`\`\`json
+{
+  "changes": [
+    {
+      "type": "update",
+      "featureId": "existing-feature-id",
+      "feature": {
+        "title": "Updated title (if changed)",
+        "description": "Updated description (if changed)",
+        "category": "feature" | "bug" | "enhancement" | "refactor" (if changed),
+        "priority": 1 (if changed)
+      },
+      "reason": "Why this feature was modified"
+    }
+  ],
+  "summary": "Brief overview of all proposed modifications",
+  "dependencyUpdates": []
+}
+\`\`\`
+
+Important rules:
+- ONLY include "update" type changes - no "add" or "delete"
+- Only include fields that actually need to change in each update
+- Provide clear reasons explaining what was modified and why
+- Maintain category consistency (feature, bug, enhancement, refactor)
+- **CRITICAL**: Do NOT create features for Playwright tests, E2E tests, unit tests, visual QA, accessibility testing, or any automated testing. Verification happens during implementation using Chrome - testing is NOT a separate feature.
+
+**CRITICAL - Iterative Execution:**
+Updated feature descriptions MUST include:
+1. A clear iterative process specific to the task with defined success criteria
+2. Instructions to use Chrome for validating UI changes (iterate until it looks right)
+3. For non-UI work, use test-driven development (write failing tests first, iterate until they pass)
+4. End with: Output <promise>DONE</promise> when complete.
+
+The process should be tailored to the specific task - define what needs to be checked, what "done" looks like, and how to iterate.
+`;
+
+export const DEFAULT_BACKLOG_MODIFY_USER_PROMPT_TEMPLATE = `Features to Modify (Backlog and In Progress):
+{{currentFeatures}}
+
+---
+
+Modification Instructions: {{userRequest}}
+
+Please analyze each feature and apply the modification instructions. Only include features that need to be changed.`;
+
+/**
+ * Default Backlog Modify prompts
+ */
+export const DEFAULT_BACKLOG_MODIFY_PROMPTS: ResolvedBacklogPlanPrompts = {
+  systemPrompt: DEFAULT_BACKLOG_MODIFY_SYSTEM_PROMPT,
+  userPromptTemplate: DEFAULT_BACKLOG_MODIFY_USER_PROMPT_TEMPLATE,
+};
+
+/**
+ * ========================================================================
  * ENHANCEMENT PROMPTS
  * ========================================================================
  * Note: Enhancement prompts are already defined in enhancement.ts
@@ -479,5 +550,6 @@ export const DEFAULT_PROMPTS = {
   autoMode: DEFAULT_AUTO_MODE_PROMPTS,
   agent: DEFAULT_AGENT_PROMPTS,
   backlogPlan: DEFAULT_BACKLOG_PLAN_PROMPTS,
+  backlogModify: DEFAULT_BACKLOG_MODIFY_PROMPTS,
   enhancement: DEFAULT_ENHANCEMENT_PROMPTS,
 } as const;

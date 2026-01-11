@@ -30,6 +30,7 @@ import {
   AddFeatureDialog,
   AgentOutputModal,
   BacklogPlanDialog,
+  BacklogModifyDialog,
   CompletedFeaturesModal,
   ArchiveAllVerifiedDialog,
   DeleteCompletedFeatureDialog,
@@ -138,6 +139,11 @@ export function BoardView() {
   const [showPlanDialog, setShowPlanDialog] = useState(false);
   const [pendingBacklogPlan, setPendingBacklogPlan] = useState<BacklogPlanResult | null>(null);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+
+  // Backlog modify dialog state
+  const [showModifyDialog, setShowModifyDialog] = useState(false);
+  const [pendingBacklogModify, setPendingBacklogModify] = useState<BacklogPlanResult | null>(null);
+  const [isGeneratingModify, setIsGeneratingModify] = useState(false);
 
   // Pipeline settings dialog state
   const [showPipelineSettings, setShowPipelineSettings] = useState(false);
@@ -731,6 +737,37 @@ export function BoardView() {
     return unsubscribe;
   }, []);
 
+  // Listen for backlog modify events (for background generation)
+  useEffect(() => {
+    const api = getElectronAPI();
+    if (!api?.backlogModify) return;
+
+    const unsubscribe = api.backlogModify.onEvent(
+      (event: { type: string; result?: BacklogPlanResult; error?: string }) => {
+        if (event.type === 'backlog_modify_complete') {
+          setIsGeneratingModify(false);
+          if (event.result && event.result.changes?.length > 0) {
+            setPendingBacklogModify(event.result);
+            toast.success('Modifications ready! Click to review.', {
+              duration: 10000,
+              action: {
+                label: 'Review',
+                onClick: () => setShowModifyDialog(true),
+              },
+            });
+          } else {
+            toast.info('No modifications generated. Try again with different instructions.');
+          }
+        } else if (event.type === 'backlog_modify_error') {
+          setIsGeneratingModify(false);
+          toast.error(`Modification generation failed: ${event.error}`);
+        }
+      }
+    );
+
+    return unsubscribe;
+  }, []);
+
   useEffect(() => {
     if (!autoMode.isRunning || !currentProject) {
       return;
@@ -1089,6 +1126,7 @@ export function BoardView() {
         }}
         onAddFeature={() => setShowAddDialog(true)}
         onOpenPlanDialog={() => setShowPlanDialog(true)}
+        onOpenModifyDialog={() => setShowModifyDialog(true)}
         addFeatureShortcut={{
           key: shortcuts.addFeature,
           action: () => setShowAddDialog(true),
@@ -1366,6 +1404,18 @@ export function BoardView() {
         setPendingPlanResult={setPendingBacklogPlan}
         isGeneratingPlan={isGeneratingPlan}
         setIsGeneratingPlan={setIsGeneratingPlan}
+      />
+
+      {/* Backlog Modify Dialog */}
+      <BacklogModifyDialog
+        open={showModifyDialog}
+        onClose={() => setShowModifyDialog(false)}
+        projectPath={currentProject.path}
+        onModifyApplied={loadFeatures}
+        pendingModifyResult={pendingBacklogModify}
+        setPendingModifyResult={setPendingBacklogModify}
+        isGeneratingModify={isGeneratingModify}
+        setIsGeneratingModify={setIsGeneratingModify}
       />
 
       {/* Plan Approval Dialog */}

@@ -24,6 +24,7 @@ import {
   DEFAULT_AUTO_MODE_PROMPTS,
   DEFAULT_AGENT_PROMPTS,
   DEFAULT_BACKLOG_PLAN_PROMPTS,
+  DEFAULT_BACKLOG_MODIFY_PROMPTS,
   DEFAULT_ENHANCEMENT_PROMPTS,
 } from './defaults.js';
 
@@ -92,6 +93,21 @@ export function mergeBacklogPlanPrompts(custom?: BacklogPlanPrompts): ResolvedBa
 }
 
 /**
+ * Merge custom Backlog Modify prompts with defaults
+ * Custom prompts override defaults only when enabled=true
+ * Note: BacklogModify uses the same structure as BacklogPlan (ResolvedBacklogPlanPrompts)
+ */
+export function mergeBacklogModifyPrompts(custom?: BacklogPlanPrompts): ResolvedBacklogPlanPrompts {
+  return {
+    systemPrompt: resolvePrompt(custom?.systemPrompt, DEFAULT_BACKLOG_MODIFY_PROMPTS.systemPrompt),
+    userPromptTemplate: resolvePrompt(
+      custom?.userPromptTemplate,
+      DEFAULT_BACKLOG_MODIFY_PROMPTS.userPromptTemplate
+    ),
+  };
+}
+
+/**
  * Merge custom Enhancement prompts with defaults
  * Custom prompts override defaults only when enabled=true
  */
@@ -125,6 +141,7 @@ export function mergeAllPrompts(custom?: PromptCustomization) {
     autoMode: mergeAutoModePrompts(custom?.autoMode),
     agent: mergeAgentPrompts(custom?.agent),
     backlogPlan: mergeBacklogPlanPrompts(custom?.backlogPlan),
+    backlogModify: mergeBacklogModifyPrompts(custom?.backlogModify),
     enhancement: mergeEnhancementPrompts(custom?.enhancement),
   };
 }

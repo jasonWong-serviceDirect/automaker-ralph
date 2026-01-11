@@ -92,6 +92,20 @@ export interface EnhancementPrompts {
 }
 
 /**
+ * BacklogModifyPrompts - Customizable prompts for Kanban board modify
+ *
+ * Controls how the AI modifies existing features via the Modify button.
+ * Uses the same structure as BacklogPlanPrompts.
+ */
+export interface BacklogModifyPrompts {
+  /** System prompt for backlog modify generation (defines output format and rules) */
+  systemPrompt?: CustomPrompt;
+
+  /** Template for user prompt (includes current features and modification instructions) */
+  userPromptTemplate?: CustomPrompt;
+}
+
+/**
  * PromptCustomization - Complete set of customizable prompts
  *
  * All fields are optional. Undefined values fall back to built-in defaults.
@@ -107,6 +121,9 @@ export interface PromptCustomization {
   /** Backlog planning prompts (Plan button) */
   backlogPlan?: BacklogPlanPrompts;
 
+  /** Backlog modify prompts (Modify button) */
+  backlogModify?: BacklogModifyPrompts;
+
   /** Enhancement prompts (feature description improvement) */
   enhancement?: EnhancementPrompts;
 }
@@ -118,6 +135,7 @@ export const DEFAULT_PROMPT_CUSTOMIZATION: PromptCustomization = {
   autoMode: {},
   agent: {},
   backlogPlan: {},
+  backlogModify: {},
   enhancement: {},
 };
 

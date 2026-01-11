@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Plus, Bot, Wand2 } from 'lucide-react';
+import { Plus, Bot, Wand2, Pencil } from 'lucide-react';
 import { KeyboardShortcut } from '@/hooks/use-keyboard-shortcuts';
 import { ClaudeUsagePopover } from '@/components/claude-usage-popover';
 import { useAppStore } from '@/store/app-store';
@@ -18,6 +18,7 @@ interface BoardHeaderProps {
   onAutoModeToggle: (enabled: boolean) => void;
   onAddFeature: () => void;
   onOpenPlanDialog: () => void;
+  onOpenModifyDialog: () => void;
   addFeatureShortcut: KeyboardShortcut;
   isMounted: boolean;
 }
@@ -35,6 +36,7 @@ export function BoardHeader({
   onAutoModeToggle,
   onAddFeature,
   onOpenPlanDialog,
+  onOpenModifyDialog,
   addFeatureShortcut,
   isMounted,
 }: BoardHeaderProps) {
@@ -108,6 +110,16 @@ export function BoardHeader({
         >
           <Wand2 className="w-4 h-4 mr-2" />
           Plan
+        </Button>
+
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onOpenModifyDialog}
+          data-testid="modify-backlog-button"
+        >
+          <Pencil className="w-4 h-4 mr-2" />
+          Modify
         </Button>
 
         <HotkeyButton

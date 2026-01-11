@@ -55,6 +55,7 @@ export type {
   AutoModePrompts,
   AgentPrompts,
   BacklogPlanPrompts,
+  BacklogModifyPrompts,
   EnhancementPrompts,
   PromptCustomization,
   ResolvedAutoModePrompts,

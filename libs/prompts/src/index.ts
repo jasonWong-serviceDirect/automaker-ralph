@@ -40,6 +40,9 @@ export {
   DEFAULT_BACKLOG_PLAN_SYSTEM_PROMPT,
   DEFAULT_BACKLOG_PLAN_USER_PROMPT_TEMPLATE,
   DEFAULT_BACKLOG_PLAN_PROMPTS,
+  DEFAULT_BACKLOG_MODIFY_SYSTEM_PROMPT,
+  DEFAULT_BACKLOG_MODIFY_USER_PROMPT_TEMPLATE,
+  DEFAULT_BACKLOG_MODIFY_PROMPTS,
   DEFAULT_ENHANCEMENT_PROMPTS,
   DEFAULT_PROMPTS,
 } from './defaults.js';
@@ -49,6 +52,7 @@ export {
   mergeAutoModePrompts,
   mergeAgentPrompts,
   mergeBacklogPlanPrompts,
+  mergeBacklogModifyPrompts,
   mergeEnhancementPrompts,
   mergeAllPrompts,
 } from './merge.js';

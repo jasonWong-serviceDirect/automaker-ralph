@@ -10,6 +10,7 @@ export type EventType =
   | 'auto-mode:idle'
   | 'auto-mode:error'
   | 'backlog-plan:event'
+  | 'backlog-modify:event'
   | 'feature:started'
   | 'feature:completed'
   | 'feature:stopped'
