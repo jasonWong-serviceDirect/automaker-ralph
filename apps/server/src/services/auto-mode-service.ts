@@ -2184,7 +2184,11 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
       [`chrome-${featureId}`]: {
         type: 'stdio' as const,
         command: 'npx',
-        args: ['chrome-devtools-mcp@latest', `--user-data-dir=/tmp/automaker-chrome/${featureId}`],
+        args: [
+          '-y', // Auto-confirm npx prompt
+          'chrome-devtools-mcp@latest',
+          `--user-data-dir=/tmp/automaker-chrome/${featureId}`,
+        ],
       },
     };
 
