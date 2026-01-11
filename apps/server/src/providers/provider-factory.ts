@@ -167,10 +167,10 @@ import { ClaudeProvider } from './claude-provider.js';
 import { ClaudeChromeProvider } from './claude-chrome-provider.js';
 import { CursorProvider } from './cursor-provider.js';
 
-// Register Claude provider - uses CLI with --chrome for browser integration
+// Register Claude provider - uses SDK for direct API access
 registerProvider('claude', {
-  factory: () => new ClaudeChromeProvider(),
-  aliases: ['anthropic', 'claude-chrome'],
+  factory: () => new ClaudeProvider(),
+  aliases: ['anthropic'],
   canHandleModel: (model: string) => {
     return (
       model.startsWith('claude-') || ['opus', 'sonnet', 'haiku'].some((n) => model.includes(n))
