@@ -33,8 +33,10 @@ Create a brief planning outline:
 1. **Goal**: What are we accomplishing? (1 sentence)
 2. **Approach**: How will we do it? (2-3 sentences)
 3. **Files to Touch**: List files and what changes
-4. **Tasks**: Numbered task list (3-7 items)
+4. **Tasks**: Numbered task list (3-7 items) - implementation tasks only, NO testing tasks
 5. **Risks**: Any gotchas to watch for
+
+**IMPORTANT**: Do NOT include Playwright tests, E2E tests, unit tests, or visual QA tasks. Verification happens during implementation using Chrome.
 
 After generating the outline, output:
 "[PLAN_GENERATED] Planning outline complete."
@@ -51,8 +53,10 @@ Create a brief planning outline:
 1. **Goal**: What are we accomplishing? (1 sentence)
 2. **Approach**: How will we do it? (2-3 sentences)
 3. **Files to Touch**: List files and what changes
-4. **Tasks**: Numbered task list (3-7 items)
+4. **Tasks**: Numbered task list (3-7 items) - implementation tasks only, NO testing tasks
 5. **Risks**: Any gotchas to watch for
+
+**IMPORTANT**: Do NOT include Playwright tests, E2E tests, unit tests, or visual QA tasks. Verification happens during implementation using Chrome.
 
 After generating the outline, output:
 "[SPEC_GENERATED] Please review the planning outline above. Reply with 'approved' to proceed or provide feedback for revisions."
@@ -94,7 +98,11 @@ Generate a specification with an actionable task breakdown. WAIT for approval be
    - File: Primary file affected (helps with context)
    - Order by dependencies (foundational tasks first)
 
-6. **Verification**: How to confirm feature works
+   **IMPORTANT - No Testing Tasks**:
+   Do NOT create tasks for Playwright tests, E2E tests, unit tests, visual QA, or any automated testing.
+   Verification happens during implementation using Chrome - each task verifies its own work visually.
+
+6. **Verification**: How to confirm feature works (manual verification steps, NOT automated tests)
 
 After generating the spec, output on its own line:
 "[SPEC_GENERATED] Please review the specification above. Reply with 'approved' to proceed or provide feedback for revisions."
@@ -146,10 +154,6 @@ Generate a comprehensive specification with phased task breakdown. WAIT for appr
    ## Phase 2: Core Implementation
    - [ ] T003: [Description] | File: [path/to/file]
    - [ ] T004: [Description] | File: [path/to/file]
-
-   ## Phase 3: Integration & Testing
-   - [ ] T005: [Description] | File: [path/to/file]
-   - [ ] T006: [Description] | File: [path/to/file]
    \`\`\`
 
    Task ID rules:
@@ -158,6 +162,11 @@ Generate a comprehensive specification with phased task breakdown. WAIT for appr
    - File: Primary file affected
    - Order by dependencies within each phase
    - Phase structure helps organize complex work
+
+   **IMPORTANT - No Testing Tasks**:
+   Do NOT create tasks for Playwright tests, E2E tests, unit tests, visual QA, or any automated testing.
+   Verification happens during implementation using Chrome - each task should verify its own work visually before completing.
+   Do NOT add testing phases, testing setup tasks, or test file creation tasks.
 
 7. **Success Metrics**: How we know it's done (measurable criteria)
 
