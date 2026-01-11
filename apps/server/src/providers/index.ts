@@ -21,6 +21,13 @@ export type {
 // Claude provider
 export { ClaudeProvider } from './claude-provider.js';
 
+// Claude Chrome provider
+export {
+  ClaudeChromeProvider,
+  ClaudeChromeErrorCode,
+  ClaudeChromeError,
+} from './claude-chrome-provider.js';
+
 // Cursor provider
 export { CursorProvider, CursorErrorCode, CursorError } from './cursor-provider.js';
 export { CursorConfigManager } from './cursor-config-manager.js';
