@@ -2206,12 +2206,6 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
       false // don't duplicate paths in text
     );
 
-    // Wrap prompt with ralph-loop for iterative execution
-    // This enables Chrome-based validation for UI work and TDD for non-UI work
-    const ralphLoopPrompt = `/ralph-loop:ralph-loop --max-iterations 50 --completion-promise "DONE"
-
-${promptContent}`;
-
     // Debug: Log if system prompt is provided
     if (options?.systemPrompt) {
       logger.info(
@@ -2220,7 +2214,7 @@ ${promptContent}`;
     }
 
     const executeOptions: ExecuteOptions = {
-      prompt: ralphLoopPrompt,
+      prompt: promptContent,
       model: finalModel,
       maxTurns: maxTurns,
       cwd: workDir,
