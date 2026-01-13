@@ -21,6 +21,7 @@ export type {
 
 // Feature types
 export type { Feature, FeatureImagePath, FeatureTextFilePath, FeatureStatus } from './feature.js';
+export { isUiFeature } from './feature.js';
 
 // Session types
 export type {

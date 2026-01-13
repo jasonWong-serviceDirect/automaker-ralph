@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Feature, useAppStore } from '@/store/app-store';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertCircle, Lock, Hand, Sparkles, CheckCircle2, Clock } from 'lucide-react';
+import { AlertCircle, Lock, Hand, Sparkles, Monitor } from 'lucide-react';
 import { getBlockingDependencies } from '@automaker/dependency-resolver';
+import { isUiFeature } from '@automaker/types';
 
 interface CardBadgeProps {
   children: React.ReactNode;
@@ -161,15 +162,13 @@ export function PriorityBadges({ feature }: PriorityBadgesProps) {
     };
   }, [feature.justFinishedAt, feature.status, currentTime]);
 
-  const showCompletionReason =
-    feature.completionReason &&
-    (feature.status === 'waiting_approval' || feature.status === 'verified');
+  const isUi = isUiFeature(feature);
 
   const showPriorityBadges =
     feature.priority ||
     (feature.skipTests && !feature.error && feature.status === 'backlog') ||
     isJustFinished ||
-    showCompletionReason;
+    isUi;
 
   if (!showPriorityBadges) {
     return null;
@@ -245,32 +244,20 @@ export function PriorityBadges({ feature }: PriorityBadgesProps) {
         </CardBadge>
       )}
 
-      {/* Completion reason badge */}
-      {showCompletionReason && (
+      {/* UI feature badge */}
+      {isUi && (
         <TooltipProvider delayDuration={200}>
           <Tooltip>
             <TooltipTrigger asChild>
               <CardBadge
-                className={cn(
-                  feature.completionReason === 'converged'
-                    ? 'bg-[var(--status-success-bg)] border-[var(--status-success)]/40 text-[var(--status-success)]'
-                    : 'bg-[var(--status-warning-bg)] border-[var(--status-warning)]/40 text-[var(--status-warning)]'
-                )}
-                data-testid={`completion-reason-badge-${feature.id}`}
+                className="bg-blue-500/20 border-blue-500/40 text-blue-400"
+                data-testid={`ui-badge-${feature.id}`}
               >
-                {feature.completionReason === 'converged' ? (
-                  <CheckCircle2 className="w-3 h-3" />
-                ) : (
-                  <Clock className="w-3 h-3" />
-                )}
+                <Monitor className="w-3 h-3" />
               </CardBadge>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="text-xs">
-              <p>
-                {feature.completionReason === 'converged'
-                  ? 'Agent completed with DONE signal'
-                  : 'Agent hit max iterations'}
-              </p>
+              <p>UI feature - uses Chrome for verification</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

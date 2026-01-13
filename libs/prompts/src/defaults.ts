@@ -41,7 +41,6 @@ Create a brief planning outline:
 **Iterative Execution:**
 - For UI work: Use Chrome to validate changes, iterate until it looks right
 - For non-UI work: Use TDD - write failing tests first, iterate until they pass
-- Output <promise>DONE</promise> when the task is complete
 
 After generating the outline, output:
 "[PLAN_GENERATED] Planning outline complete."
@@ -66,7 +65,6 @@ Create a brief planning outline:
 **Iterative Execution:**
 - For UI work: Use Chrome to validate changes, iterate until it looks right
 - For non-UI work: Use TDD - write failing tests first, iterate until they pass
-- Output <promise>DONE</promise> when the task is complete
 
 After generating the outline, output:
 "[SPEC_GENERATED] Please review the planning outline above. Reply with 'approved' to proceed or provide feedback for revisions."
@@ -122,7 +120,6 @@ DO NOT proceed with implementation until you receive explicit approval.
 **Iterative Execution:**
 - For UI work: Use Chrome to validate changes, iterate until it looks right
 - For non-UI work: Use TDD - write failing tests first, iterate until they pass
-- Output <promise>DONE</promise> when the task is complete
 
 When approved, execute tasks SEQUENTIALLY in order. For each task:
 1. BEFORE starting, output: "[TASK_START] T###: Description"
@@ -198,7 +195,6 @@ DO NOT proceed with implementation until you receive explicit approval.
 **Iterative Execution:**
 - For UI work: Use Chrome to validate changes, iterate until it looks right
 - For non-UI work: Use TDD - write failing tests first, iterate until they pass
-- Output <promise>DONE</promise> when the task is complete
 
 When approved, execute tasks SEQUENTIALLY by phase. For each task:
 1. BEFORE starting, output: "[TASK_START] T###: Description"
@@ -419,7 +415,6 @@ All feature descriptions MUST include:
 1. A clear iterative process specific to the task with defined success criteria
 2. Instructions to use Chrome for validating UI changes (iterate until it looks right)
 3. For non-UI work, use test-driven development (write failing tests first, iterate until they pass)
-4. End with: Output <promise>DONE</promise> when complete.
 
 The process should be tailored to the specific task - define what needs to be checked, what "done" looks like, and how to iterate.
 `;
@@ -490,7 +485,6 @@ Updated feature descriptions MUST include:
 1. A clear iterative process specific to the task with defined success criteria
 2. Instructions to use Chrome for validating UI changes (iterate until it looks right)
 3. For non-UI work, use test-driven development (write failing tests first, iterate until they pass)
-4. End with: Output <promise>DONE</promise> when complete.
 
 The process should be tailored to the specific task - define what needs to be checked, what "done" looks like, and how to iterate.
 `;
