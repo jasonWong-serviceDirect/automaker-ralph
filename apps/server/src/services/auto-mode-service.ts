@@ -2087,29 +2087,17 @@ When done, wrap your final summary in <summary> tags like this:
 
 This helps parse your summary correctly in the output logs.`;
     } else {
-      // Automated verification - implement and verify using Playwright tests (Chrome disabled)
+      // Standard implementation without browser testing
       prompt += `
 ## Instructions
 
-Implement this feature using an iterative approach with test-based verification:
+Implement this feature using an iterative approach:
 
 1. First, explore the codebase to understand the existing structure
 2. Plan your implementation approach
-3. Implement the changes in small, testable increments
-4. **After each significant change, run the Playwright tests to verify it works correctly**
-5. If tests fail, fix the issues immediately before continuing
-6. Repeat until all requirements are satisfied and tests pass
-
-## Verification with Playwright Tests (REQUIRED)
-
-Use existing Playwright tests to verify your changes work correctly. After implementing changes:
-
-1. **Run the relevant tests** to verify your changes work as expected
-2. **Check test output** for any failures or errors
-3. **If tests fail, fix the code** and re-run tests before moving on
-4. **Add new tests if needed** for new functionality
-
-Do NOT consider a task complete until all relevant tests pass. Continue iterating on the implementation until the feature meets all requirements.
+3. Implement the changes in small, logical increments
+4. Verify your changes compile and work as expected
+5. Repeat until all requirements are satisfied
 
 When done, wrap your final summary in <summary> tags like this:
 
@@ -2121,9 +2109,6 @@ When done, wrap your final summary in <summary> tags like this:
 
 ### Files Modified
 - [List of files]
-
-### Test Results
-- [Describe which tests were run and their status]
 
 ### Notes for Developer
 - [Any important notes]
