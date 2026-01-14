@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Plus, Bot, Wand2, Pencil } from 'lucide-react';
+import { Plus, Bot, Wand2, Pencil, Globe } from 'lucide-react';
 import { KeyboardShortcut } from '@/hooks/use-keyboard-shortcuts';
 import { ClaudeUsagePopover } from '@/components/claude-usage-popover';
 import { useAppStore } from '@/store/app-store';
@@ -16,6 +16,8 @@ interface BoardHeaderProps {
   onConcurrencyChange: (value: number) => void;
   isAutoModeRunning: boolean;
   onAutoModeToggle: (enabled: boolean) => void;
+  useBrowserMode: boolean;
+  onBrowserModeToggle: (enabled: boolean) => void;
   onAddFeature: () => void;
   onOpenPlanDialog: () => void;
   onOpenModifyDialog: () => void;
@@ -34,6 +36,8 @@ export function BoardHeader({
   onConcurrencyChange,
   isAutoModeRunning,
   onAutoModeToggle,
+  useBrowserMode,
+  onBrowserModeToggle,
   onAddFeature,
   onOpenPlanDialog,
   onOpenModifyDialog,
@@ -98,6 +102,22 @@ export function BoardHeader({
               checked={isAutoModeRunning}
               onCheckedChange={onAutoModeToggle}
               data-testid="auto-mode-toggle"
+            />
+          </div>
+        )}
+
+        {/* Browser Mode Toggle - only show after mount to prevent hydration issues */}
+        {isMounted && (
+          <div className={controlContainerClass} data-testid="browser-mode-toggle-container">
+            <Globe className="w-4 h-4 text-muted-foreground" />
+            <Label htmlFor="browser-mode-toggle" className="text-sm font-medium cursor-pointer">
+              Browser
+            </Label>
+            <Switch
+              id="browser-mode-toggle"
+              checked={useBrowserMode}
+              onCheckedChange={onBrowserModeToggle}
+              data-testid="browser-mode-toggle"
             />
           </div>
         )}

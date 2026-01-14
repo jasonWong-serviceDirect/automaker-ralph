@@ -54,8 +54,52 @@ export interface Feature {
   error?: string;
   summary?: string;
   startedAt?: string;
-  completionReason?: 'converged' | 'max_iterations' | 'error' | 'aborted';
   [key: string]: unknown; // Keep catch-all for extensibility
 }
 
 export type FeatureStatus = 'pending' | 'running' | 'completed' | 'failed' | 'verified';
+
+/**
+ * Determines if a feature is UI-related based on category and description.
+ * Used to decide whether Chrome mode should be enabled for visual verification.
+ */
+export function isUiFeature(feature: {
+  category: string;
+  description: string;
+  title?: string;
+}): boolean {
+  // Category-based classification - these are clearly UI-related
+  const uiCategories = ['ui', 'enhancement'];
+  if (uiCategories.includes(feature.category.toLowerCase())) {
+    return true;
+  }
+
+  // For ambiguous categories, check description for UI keywords
+  const desc = (feature.description + ' ' + (feature.title || '')).toLowerCase();
+  const uiKeywords = [
+    'button',
+    'modal',
+    'dialog',
+    'form',
+    'input',
+    'display',
+    'component',
+    'page',
+    'view',
+    'dashboard',
+    'layout',
+    'style',
+    'css',
+    'visual',
+    'ui',
+    'interface',
+    'screen',
+    'panel',
+    'menu',
+    'navigation',
+    'icon',
+    'badge',
+  ];
+
+  return uiKeywords.some((keyword) => desc.includes(keyword));
+}

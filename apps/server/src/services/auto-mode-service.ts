@@ -19,6 +19,7 @@ import type {
   PipelineStep,
   ThinkingLevel,
   PlanningMode,
+  BrowserTestSettings,
 } from '@automaker/types';
 import { DEFAULT_PHASE_MODELS } from '@automaker/types';
 import {
@@ -430,6 +431,7 @@ export class AutoModeService {
     providedWorktreePath?: string,
     options?: {
       continuationPrompt?: string;
+      useChromeMode?: boolean;
     }
   ): Promise<void> {
     if (this.runningFeatures.has(featureId)) {
@@ -540,7 +542,15 @@ export class AutoModeService {
         logger.info(`Using continuation prompt for feature ${featureId}`);
       } else {
         // Normal flow: build prompt with planning phase
-        const featurePrompt = this.buildFeaturePrompt(feature);
+        // Load project settings for browser test configuration
+        const projectSettings = await this.settingsService?.getProjectSettings(projectPath);
+        const browserTestSettings = projectSettings?.browserTest;
+
+        // Browser mode enabled when toggle is on and settings are configured
+        const globalBrowserEnabled = options?.useChromeMode ?? false;
+        const useBrowserMode = globalBrowserEnabled && !!browserTestSettings;
+
+        const featurePrompt = this.buildFeaturePrompt(feature, useBrowserMode, browserTestSettings);
         const planningPrefix = await this.getPlanningPromptPrefix(feature);
         prompt = planningPrefix + featurePrompt;
 
@@ -572,6 +582,7 @@ export class AutoModeService {
 
       // Run the agent with the feature's model and images
       // Context files are passed as system prompt for higher priority
+      // Note: useChromeMode is now deprecated - we use agent-browser via prompts instead
       await this.runAgent(
         workDir,
         featureId,
@@ -587,6 +598,7 @@ export class AutoModeService {
           systemPrompt: contextFilesPrompt || undefined,
           autoLoadClaudeMd,
           thinkingLevel: feature.thinkingLevel,
+          useChromeMode: false, // Deprecated - browser testing via agent-browser prompts
         }
       );
 
@@ -630,8 +642,6 @@ export class AutoModeService {
       const errorInfo = classifyError(error);
 
       if (errorInfo.isAbort) {
-        // Set completion reason to aborted
-        await this.updateFeatureCompletionReason(projectPath, featureId, 'aborted');
         this.emitAutoModeEvent('auto_mode_feature_complete', {
           featureId,
           passes: false,
@@ -640,8 +650,6 @@ export class AutoModeService {
         });
       } else {
         logger.error(`Feature ${featureId} failed:`, error);
-        // Set completion reason to error before updating status
-        await this.updateFeatureCompletionReason(projectPath, featureId, 'error');
         await this.updateFeatureStatus(projectPath, featureId, 'backlog');
         this.emitAutoModeEvent('auto_mode_error', {
           featureId,
@@ -1742,27 +1750,6 @@ Format your response as a structured markdown document.`;
   }
 
   /**
-   * Update the completion reason of a feature
-   */
-  private async updateFeatureCompletionReason(
-    projectPath: string,
-    featureId: string,
-    completionReason: 'converged' | 'max_iterations' | 'error' | 'aborted'
-  ): Promise<void> {
-    const featureDir = getFeatureDir(projectPath, featureId);
-    const featurePath = path.join(featureDir, 'feature.json');
-
-    try {
-      const data = (await secureFs.readFile(featurePath, 'utf-8')) as string;
-      const feature = JSON.parse(data);
-      feature.completionReason = completionReason;
-      await secureFs.writeFile(featurePath, JSON.stringify(feature, null, 2));
-    } catch {
-      logger.warn(`Could not update completion reason for feature ${featureId}`);
-    }
-  }
-
-  /**
    * Update the planSpec of a feature
    */
   private async updateFeaturePlanSpec(
@@ -1960,7 +1947,11 @@ Respond with ONLY the bullet points, no preamble or explanation.`,
     return planningPrompt + '\n\n---\n\n## Feature Request\n\n';
   }
 
-  private buildFeaturePrompt(feature: Feature): string {
+  private buildFeaturePrompt(
+    feature: Feature,
+    useBrowserMode: boolean = false,
+    browserTestSettings?: BrowserTestSettings
+  ): string {
     const title = this.extractTitleFromDescription(feature.description);
 
     let prompt = `## Feature Implementation Task
@@ -2000,8 +1991,76 @@ You can use the Read tool to view these images at any time during implementation
     }
 
     // Add verification instructions based on testing mode
-    if (feature.skipTests) {
-      // Manual verification - just implement the feature
+    // Browser mode takes priority when enabled and configured
+    if (useBrowserMode && browserTestSettings) {
+      // Automated verification - implement and verify using agent-browser
+      const sessionName = `feature-${feature.id}`;
+      const baseUrl = browserTestSettings.url;
+      const loginPath = browserTestSettings.loginPath || '/auth/login';
+      const credentials = browserTestSettings.credentials;
+
+      prompt += `
+## Instructions
+
+Implement this feature using an iterative approach with visual verification:
+
+1. First, explore the codebase to understand the existing structure
+2. Plan your implementation approach
+3. Implement the changes in small, testable increments
+4. **After each significant change, use agent-browser to visually verify it works correctly**
+5. If something doesn't work as expected, fix it immediately before continuing
+6. Repeat until all requirements are satisfied
+
+## Browser Testing with agent-browser (REQUIRED)
+
+You have access to agent-browser for visual verification.
+- **Session name**: ${sessionName}
+- **Base URL**: ${baseUrl}
+- **Auth state file**: .automaker/browser-auth.json
+
+### First-time Setup (if auth state doesn't exist)
+Check if \`.automaker/browser-auth.json\` exists. If NOT:
+1. agent-browser --session ${sessionName} open ${baseUrl}${loginPath}
+2. agent-browser --session ${sessionName} snapshot -i
+3. Login with: email="${credentials?.email || 'test@example.com'}" password="${credentials?.password || 'password'}"
+4. agent-browser --session ${sessionName} state save .automaker/browser-auth.json
+
+### Normal Workflow
+1. agent-browser --session ${sessionName} state load .automaker/browser-auth.json
+2. agent-browser --session ${sessionName} open ${baseUrl}/{relevant-page}
+3. agent-browser --session ${sessionName} snapshot -i
+4. Verify changes visually, interact with elements
+5. agent-browser --session ${sessionName} close (when done)
+
+### Key Commands Reference
+- snapshot -i: Get interactive elements with refs (@e1, @e2)
+- click @e1: Click element by ref
+- fill @e2 "text": Fill input field
+- screenshot: Capture current state
+
+Do NOT consider a task complete until you have visually confirmed it works in the browser. Continue iterating on the implementation until the feature meets all requirements.
+
+When done, wrap your final summary in <summary> tags like this:
+
+<summary>
+## Summary: [Feature Title]
+
+### Changes Implemented
+- [List of changes made]
+
+### Files Modified
+- [List of files]
+
+### Verification Status
+- [Describe what was visually verified in browser]
+
+### Notes for Developer
+- [Any important notes]
+</summary>
+
+This helps parse your summary correctly in the output logs.`;
+    } else if (feature.skipTests) {
+      // Manual verification - just implement the feature (no automated tests)
       prompt += `
 ## Instructions
 
@@ -2028,30 +2087,29 @@ When done, wrap your final summary in <summary> tags like this:
 
 This helps parse your summary correctly in the output logs.`;
     } else {
-      // Automated verification - implement and verify using chrome-devtools-mcp
+      // Automated verification - implement and verify using Playwright tests (Chrome disabled)
       prompt += `
 ## Instructions
 
-Implement this feature using an iterative approach with visual verification:
+Implement this feature using an iterative approach with test-based verification:
 
 1. First, explore the codebase to understand the existing structure
 2. Plan your implementation approach
 3. Implement the changes in small, testable increments
-4. **After each significant change, use chrome-devtools-mcp to visually verify it works correctly**
-5. If something doesn't work as expected, fix it immediately before continuing
-6. Repeat until all requirements are satisfied
+4. **After each significant change, run the Playwright tests to verify it works correctly**
+5. If tests fail, fix the issues immediately before continuing
+6. Repeat until all requirements are satisfied and tests pass
 
-## Verification with chrome-devtools-mcp (REQUIRED)
+## Verification with Playwright Tests (REQUIRED)
 
-You have access to \`chrome-devtools-mcp\` tools for visual verification. Use these MCP tools to test and validate your changes:
+Use existing Playwright tests to verify your changes work correctly. After implementing changes:
 
-1. **Navigate to the relevant page** using chrome-devtools-mcp to see your changes
-2. **Visually inspect** that the UI looks correct and functions as expected
-3. **Interact with the feature** - click buttons, fill forms, trigger the functionality
-4. **Check for errors** in the console or unexpected behavior
-5. **If anything is wrong, fix it and re-verify** before moving on
+1. **Run the relevant tests** to verify your changes work as expected
+2. **Check test output** for any failures or errors
+3. **If tests fail, fix the code** and re-run tests before moving on
+4. **Add new tests if needed** for new functionality
 
-Do NOT consider a task complete until you have visually confirmed it works using chrome-devtools-mcp. Continue iterating on the implementation until the feature meets all requirements.
+Do NOT consider a task complete until all relevant tests pass. Continue iterating on the implementation until the feature meets all requirements.
 
 When done, wrap your final summary in <summary> tags like this:
 
@@ -2064,8 +2122,8 @@ When done, wrap your final summary in <summary> tags like this:
 ### Files Modified
 - [List of files]
 
-### Verification Status
-- [Describe what was visually verified using chrome-devtools-mcp]
+### Test Results
+- [Describe which tests were run and their status]
 
 ### Notes for Developer
 - [Any important notes]
@@ -2093,6 +2151,7 @@ This helps parse your summary correctly in the output logs.`;
       systemPrompt?: string;
       autoLoadClaudeMd?: boolean;
       thinkingLevel?: ThinkingLevel;
+      useChromeMode?: boolean;
     }
   ): Promise<void> {
     const finalProjectPath = options?.projectPath || projectPath;
@@ -2269,30 +2328,6 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
       false // don't duplicate paths in text
     );
 
-    // Build auth injection instructions if we have credentials
-    let authInstructions = '';
-    if (authInjectionScript) {
-      authInstructions = `
-## chrome-devtools-mcp Authentication Setup (REQUIRED FIRST STEP)
-
-Before doing ANY visual verification with chrome-devtools-mcp, you MUST authenticate the browser:
-
-1. Use chrome-devtools-mcp to navigate to the site's URL first (any page)
-2. Use chrome-devtools-mcp to run this script in the browser console to inject the auth session:
-\`\`\`javascript
-${authInjectionScript}
-\`\`\`
-3. Reload the page after injecting the session
-4. You should now be logged in as the test user
-
-Do this ONCE at the start before any other chrome-devtools-mcp interactions.
-
-`;
-    }
-
-    // Build final prompt with auth instructions if available
-    const finalPrompt = authInstructions ? `${authInstructions}${promptContent}` : promptContent;
-
     // Debug: Log if system prompt is provided
     if (options?.systemPrompt) {
       logger.info(
@@ -2301,7 +2336,7 @@ Do this ONCE at the start before any other chrome-devtools-mcp interactions.
     }
 
     const executeOptions: ExecuteOptions = {
-      prompt: finalPrompt,
+      prompt: promptContent,
       model: finalModel,
       maxTurns: maxTurns,
       cwd: workDir,
@@ -2910,14 +2945,6 @@ Implement all the changes described in the plan above.`;
           logger.error(`Failed to write final raw output for ${featureId}:`, error);
         }
       }
-
-      // Detect completion reason: did agent output DONE or hit max iterations?
-      const converged = responseText.includes('<promise>DONE</promise>');
-      await this.updateFeatureCompletionReason(
-        projectPath,
-        featureId,
-        converged ? 'converged' : 'max_iterations'
-      );
     } finally {
       // ALWAYS clear pending timeouts to prevent memory leaks
       // This runs on success, error, or abort

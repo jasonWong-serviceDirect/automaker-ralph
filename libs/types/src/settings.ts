@@ -535,6 +535,24 @@ export interface BoardBackgroundSettings {
 }
 
 /**
+ * BrowserTestSettings - Configuration for agent-browser UI testing
+ *
+ * Enables automated browser testing using agent-browser with named sessions.
+ * Auth state is persisted to allow login once, then reuse across features.
+ */
+export interface BrowserTestSettings {
+  /** Base URL for the application under test (e.g., "http://localhost:3000") */
+  url: string;
+  /** Path to the login page (e.g., "/auth/login") */
+  loginPath?: string;
+  /** Credentials for automated login */
+  credentials?: {
+    email: string;
+    password: string;
+  };
+}
+
+/**
  * WorktreeInfo - Information about a git worktree
  *
  * Tracks worktree location, branch, and dirty state for project management.
@@ -585,6 +603,10 @@ export interface ProjectSettings {
   // Claude Agent SDK Settings
   /** Auto-load CLAUDE.md files using SDK's settingSources option (project override) */
   autoLoadClaudeMd?: boolean;
+
+  // Browser Testing Configuration
+  /** Settings for agent-browser UI testing */
+  browserTest?: BrowserTestSettings;
 }
 
 /**

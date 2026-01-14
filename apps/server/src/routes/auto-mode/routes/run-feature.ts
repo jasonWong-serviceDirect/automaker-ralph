@@ -12,10 +12,11 @@ const logger = createLogger('AutoMode');
 export function createRunFeatureHandler(autoModeService: AutoModeService) {
   return async (req: Request, res: Response): Promise<void> => {
     try {
-      const { projectPath, featureId, useWorktrees } = req.body as {
+      const { projectPath, featureId, useWorktrees, useChromeMode } = req.body as {
         projectPath: string;
         featureId: string;
         useWorktrees?: boolean;
+        useChromeMode?: boolean;
       };
 
       if (!projectPath || !featureId) {
@@ -29,7 +30,9 @@ export function createRunFeatureHandler(autoModeService: AutoModeService) {
       // Start execution in background
       // executeFeature derives workDir from feature.branchName
       autoModeService
-        .executeFeature(projectPath, featureId, useWorktrees ?? false, false)
+        .executeFeature(projectPath, featureId, useWorktrees ?? false, false, undefined, {
+          useChromeMode: useChromeMode ?? true,
+        })
         .catch((error) => {
           logger.error(`Feature ${featureId} error:`, error);
         })
