@@ -409,6 +409,7 @@ Important rules:
 - Maintain category consistency (feature, bug, enhancement, refactor)
 - When adding dependencies, ensure the referenced features exist or are being added in the same plan
 - **CRITICAL**: Do NOT create features for Playwright tests, E2E tests, unit tests, visual QA, accessibility testing, or any automated testing. Verification happens during implementation using agent-browser - testing is NOT a separate feature.
+- **IMPORTANT**: Break into multiple features that can be worked on in parallel as much as possible
 
 **CRITICAL - Iterative Execution:**
 All feature descriptions MUST include:

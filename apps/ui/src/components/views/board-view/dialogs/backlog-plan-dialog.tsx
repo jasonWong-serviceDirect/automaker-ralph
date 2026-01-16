@@ -124,13 +124,9 @@ export function BacklogPlanDialog({
       return;
     }
 
-    // Show toast and close dialog - generation runs in background
-    toast.info('Generating plan... This will be ready soon!', {
-      duration: 3000,
-    });
+    // Clear prompt but keep modal open so user can see generation progress
     setPrompt('');
-    onClose();
-  }, [projectPath, prompt, modelOverride, phaseModels, setIsGeneratingPlan, onClose]);
+  }, [projectPath, prompt, modelOverride, phaseModels, setIsGeneratingPlan]);
 
   const handleApply = useCallback(async () => {
     if (!pendingPlanResult) return;
