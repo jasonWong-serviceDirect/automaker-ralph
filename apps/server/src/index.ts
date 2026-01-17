@@ -68,6 +68,22 @@ import { IdeationService } from './services/ideation-service.js';
 // Load environment variables
 dotenv.config();
 
+// Global error handlers to catch silent crashes
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('UNHANDLED REJECTION at:', promise, 'reason:', reason);
+  // Log stack trace if available
+  if (reason instanceof Error) {
+    logger.error('Stack:', reason.stack);
+  }
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('UNCAUGHT EXCEPTION:', error);
+  logger.error('Stack:', error.stack);
+  // Don't exit - let the process continue if possible
+  // but log the error for debugging
+});
+
 const PORT = parseInt(process.env.PORT || '3008', 10);
 const DATA_DIR = process.env.DATA_DIR || './data';
 const ENABLE_REQUEST_LOGGING = process.env.ENABLE_REQUEST_LOGGING !== 'false'; // Default to true

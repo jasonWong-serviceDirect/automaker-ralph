@@ -2447,9 +2447,13 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
     };
 
     // Execute via provider
-    logger.info(`Starting stream for feature ${featureId}...`);
+    logger.info(`[Provider] Starting stream for feature ${featureId}...`);
+    logger.info(
+      `[Provider] Execute options: model=${executeOptions.model}, cwd=${executeOptions.cwd}, maxTurns=${executeOptions.maxTurns}`
+    );
+    logger.info(`[Provider] planningMode=${planningMode}, requiresApproval=${requiresApproval}`);
     const stream = provider.executeQuery(executeOptions);
-    logger.info(`Stream created, starting to iterate...`);
+    logger.info(`[Provider] Stream generator created, will iterate...`);
     // Initialize with previous content if this is a follow-up, with a separator
     let responseText = previousContent
       ? `${previousContent}\n\n---\n\n## Follow-up Session\n\n`
@@ -2525,8 +2529,13 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
     };
 
     // Wrap stream processing in try/finally to ensure timeout cleanup on any error/abort
+    let streamMessageCount = 0;
+    const streamStartTime = Date.now();
+    logger.info(`[Stream] Starting stream iteration for feature ${featureId}`);
+
     try {
       streamLoop: for await (const msg of stream) {
+        streamMessageCount++;
         // Log raw stream event for debugging
         appendRawEvent(msg);
 
@@ -3034,6 +3043,7 @@ Implement all the changes described in the plan above.`;
           }
         } else if (msg.type === 'error') {
           // Handle error messages
+          logger.error(`[Stream] Received error message for ${featureId}:`, msg);
           throw new Error(msg.error || 'Unknown error');
         } else if (msg.type === 'result' && msg.subtype === 'success') {
           // Don't replace responseText - the accumulated content is the full history
@@ -3041,6 +3051,18 @@ Implement all the changes described in the plan above.`;
           // Just ensure final write happens
           scheduleWrite();
         }
+      }
+
+      // Log stream completion stats
+      const streamElapsed = Date.now() - streamStartTime;
+      logger.info(
+        `[Stream] Stream loop completed for ${featureId}. Messages: ${streamMessageCount}, Elapsed: ${streamElapsed}ms, Response length: ${responseText.length}`
+      );
+
+      if (streamMessageCount === 0) {
+        logger.error(
+          `[Stream] WARNING: Stream completed with ZERO messages for ${featureId} - this is abnormal!`
+        );
       }
 
       // Final write - ensure all accumulated content is saved (on success path)
@@ -3055,9 +3077,19 @@ Implement all the changes described in the plan above.`;
           logger.error(`Failed to write final raw output for ${featureId}:`, error);
         }
       }
+    } catch (streamError) {
+      const streamElapsed = Date.now() - streamStartTime;
+      logger.error(
+        `[Stream] Stream ERROR for ${featureId} after ${streamMessageCount} messages, ${streamElapsed}ms:`,
+        streamError
+      );
+      throw streamError;
     } finally {
       // ALWAYS clear pending timeouts to prevent memory leaks
       // This runs on success, error, or abort
+      logger.info(
+        `[Stream] Cleaning up for ${featureId}. Total messages processed: ${streamMessageCount}`
+      );
       if (writeTimeout) {
         clearTimeout(writeTimeout);
         writeTimeout = null;

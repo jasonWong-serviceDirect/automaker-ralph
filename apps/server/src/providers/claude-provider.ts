@@ -131,25 +131,69 @@ export class ClaudeProvider extends BaseProvider {
     }
 
     // Execute via Claude Agent SDK
+    let messageCount = 0;
+    let lastMessageType = '';
+    const startTime = Date.now();
+
+    logger.info(`[SDK] Starting query with model=${model}, cwd=${cwd}, maxTurns=${maxTurns}`);
+    logger.info(
+      `[SDK] API key present: ${!!process.env.ANTHROPIC_API_KEY}, length: ${process.env.ANTHROPIC_API_KEY?.length || 0}`
+    );
+    logger.info(`[SDK] Tools: ${allowedTools?.join(', ') || 'default'}`);
+    logger.info(
+      `[SDK] MCP servers: ${options.mcpServers ? Object.keys(options.mcpServers).join(', ') : 'none'}`
+    );
+
     try {
+      logger.info('[SDK] Calling query()...');
       const stream = query({ prompt: promptPayload, options: sdkOptions });
+      logger.info('[SDK] query() returned, starting iteration...');
 
       // Stream messages directly - they're already in the correct format
       for await (const msg of stream) {
+        messageCount++;
+        lastMessageType = msg.type || 'unknown';
+
+        // Log every message for debugging
+        const msgSummary = {
+          type: msg.type,
+          subtype: (msg as any).subtype,
+          hasContent: !!(msg as any).message?.content?.length,
+          contentTypes: (msg as any).message?.content?.map((b: any) => b.type) || [],
+          sessionId: (msg as any).session_id ? 'present' : 'absent',
+        };
+        logger.info(`[SDK] Message #${messageCount}: ${JSON.stringify(msgSummary)}`);
+
         yield msg as ProviderMessage;
       }
+
+      const elapsed = Date.now() - startTime;
+      logger.info(
+        `[SDK] Stream completed normally. Messages: ${messageCount}, Last type: ${lastMessageType}, Elapsed: ${elapsed}ms`
+      );
+
+      if (messageCount === 0) {
+        logger.error('[SDK] WARNING: Stream completed with ZERO messages - this is abnormal!');
+      }
     } catch (error) {
+      const elapsed = Date.now() - startTime;
+      logger.error(`[SDK] Stream ERROR after ${messageCount} messages, ${elapsed}ms`);
+
       // Enhance error with user-friendly message and classification
       const errorInfo = classifyError(error);
       const userMessage = getUserFriendlyErrorMessage(error);
 
-      logger.error('executeQuery() error during execution:', {
+      logger.error('[SDK] executeQuery() error during execution:', {
         type: errorInfo.type,
         message: errorInfo.message,
         isRateLimit: errorInfo.isRateLimit,
         retryAfter: errorInfo.retryAfter,
+        originalMessage: (error as Error).message,
         stack: (error as Error).stack,
       });
+
+      // Log raw error for maximum visibility
+      logger.error('[SDK] Raw error object:', error);
 
       // Build enhanced error message with additional guidance for rate limits
       const message = errorInfo.isRateLimit
