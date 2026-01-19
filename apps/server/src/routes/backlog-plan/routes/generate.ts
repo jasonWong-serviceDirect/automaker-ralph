@@ -3,6 +3,7 @@
  */
 
 import type { Request, Response } from 'express';
+import type { BrowserToolMode } from '@automaker/types';
 import type { EventEmitter } from '../../../lib/events.js';
 import { getBacklogPlanStatus, setRunningState, getErrorMessage, logError } from '../common.js';
 import { generateBacklogPlan } from '../generate-plan.js';
@@ -11,10 +12,11 @@ import type { SettingsService } from '../../../services/settings-service.js';
 export function createGenerateHandler(events: EventEmitter, settingsService?: SettingsService) {
   return async (req: Request, res: Response): Promise<void> => {
     try {
-      const { projectPath, prompt, model } = req.body as {
+      const { projectPath, prompt, model, browserToolMode } = req.body as {
         projectPath: string;
         prompt: string;
         model?: string;
+        browserToolMode?: BrowserToolMode;
       };
 
       if (!projectPath) {
@@ -41,7 +43,15 @@ export function createGenerateHandler(events: EventEmitter, settingsService?: Se
       setRunningState(true, abortController);
 
       // Start generation in background
-      generateBacklogPlan(projectPath, prompt, events, abortController, settingsService, model)
+      generateBacklogPlan(
+        projectPath,
+        prompt,
+        events,
+        abortController,
+        settingsService,
+        model,
+        browserToolMode
+      )
         .catch((error) => {
           logError(error, 'Generate backlog plan failed (background)');
           events.emit('backlog-plan:event', {

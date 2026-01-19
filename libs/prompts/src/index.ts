@@ -28,6 +28,9 @@ export type { EnhancementMode, EnhancementExample } from '@automaker/types';
 export {
   // Browser mode instructions
   CHROME_MCP_INSTRUCTIONS,
+  AGENT_BROWSER_INSTRUCTIONS_SHORT,
+  CHROME_MCP_INSTRUCTIONS_SHORT,
+  getBrowserInstructions,
   // Auto mode prompts
   DEFAULT_AUTO_MODE_PLANNING_LITE,
   DEFAULT_AUTO_MODE_PLANNING_LITE_WITH_APPROVAL,

@@ -18,8 +18,13 @@ export type {
   ModelDefinition,
 } from './types.js';
 
-// Claude provider
+// Claude providers
 export { ClaudeProvider } from './claude-provider.js';
+export {
+  ClaudeChromeProvider,
+  ClaudeChromeErrorCode,
+  type ClaudeChromeError,
+} from './claude-chrome-provider.js';
 
 // Cursor provider
 export { CursorProvider, CursorErrorCode, CursorError } from './cursor-provider.js';

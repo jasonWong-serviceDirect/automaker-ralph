@@ -75,10 +75,18 @@ export class ProviderFactory {
    * Get the appropriate provider for a given model ID
    *
    * @param modelId Model identifier (e.g., "claude-opus-4-5-20251101", "cursor-gpt-4o", "cursor-auto")
+   * @param options Additional options for provider selection
+   * @param options.useChromeMode When true, use ClaudeChromeProvider for Claude models (uses `claude --chrome`)
    * @returns Provider instance for the model
    */
-  static getProviderForModel(modelId: string): BaseProvider {
+  static getProviderForModel(modelId: string, options?: { useChromeMode?: boolean }): BaseProvider {
     const providerName = this.getProviderNameForModel(modelId);
+
+    // Use ClaudeChromeProvider when chrome mode is enabled for Claude models
+    if (providerName === 'claude' && options?.useChromeMode) {
+      return new ClaudeChromeProvider();
+    }
+
     const provider = this.getProviderByName(providerName);
 
     if (!provider) {
@@ -164,6 +172,7 @@ export class ProviderFactory {
 
 // Import providers for registration side-effects
 import { ClaudeProvider } from './claude-provider.js';
+import { ClaudeChromeProvider } from './claude-chrome-provider.js';
 import { CursorProvider } from './cursor-provider.js';
 
 // Register Claude provider - uses Claude Agent SDK
