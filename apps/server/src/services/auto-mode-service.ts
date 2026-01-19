@@ -551,9 +551,9 @@ export class AutoModeService {
       const projectSettings = await this.settingsService?.getProjectSettings(projectPath);
       const browserTestSettings = projectSettings?.browserTest;
 
-      // Determine browser tool mode: options > settings > default ('agent-browser')
+      // Determine browser tool mode: options > settings > default ('chrome-extension')
       const browserToolMode: BrowserToolMode =
-        options?.browserToolMode ?? browserTestSettings?.toolMode ?? 'agent-browser';
+        options?.browserToolMode ?? browserTestSettings?.toolMode ?? 'chrome-extension';
 
       // Browser mode enabled when toggle is on and settings are configured
       const globalBrowserEnabled = options?.useChromeMode ?? false;
@@ -2133,7 +2133,7 @@ Respond with ONLY the bullet points, no preamble or explanation.`,
     feature: Feature,
     useBrowserMode: boolean = false,
     browserTestSettings?: BrowserTestSettings,
-    browserToolMode: BrowserToolMode = 'agent-browser'
+    browserToolMode: BrowserToolMode = 'chrome-extension'
   ): string {
     const title = this.extractTitleFromDescription(feature.description);
 
@@ -2445,25 +2445,11 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
     const enableSandboxMode = await getEnableSandboxModeSetting(this.settingsService, '[AutoMode]');
 
     // Load MCP servers from settings (global setting only)
-    let mcpServers = await getMCPServersFromSettings(this.settingsService, '[AutoMode]');
+    const mcpServers = await getMCPServersFromSettings(this.settingsService, '[AutoMode]');
 
-    // Inject Chrome MCP server when using chrome-extension mode
-    if (options?.useBrowserMode && options?.browserToolMode === 'chrome-extension') {
-      const chromeMcpConfig = {
-        type: 'stdio' as const,
-        command: 'npx',
-        args: [
-          '-y',
-          'chrome-devtools-mcp@latest',
-          `--user-data-dir=/tmp/automaker-chrome/${featureId}`,
-        ],
-      };
-      mcpServers = {
-        ...mcpServers,
-        [`chrome-${featureId}`]: chromeMcpConfig,
-      };
-      logger.info(`Injected Chrome MCP server for feature ${featureId} (chrome-extension mode)`);
-    }
+    // Determine if we should use Chrome mode (claude --chrome)
+    const useChromeMode =
+      options?.useBrowserMode && options?.browserToolMode === 'chrome-extension';
 
     // Build SDK options using centralized configuration for feature implementation
     const sdkOptions = createAutoModeOptions({
@@ -2485,10 +2471,12 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
       `runAgent called for feature ${featureId} with model: ${finalModel}, planningMode: ${planningMode}, requiresApproval: ${requiresApproval}`
     );
 
-    // Get provider for this model
-    const provider = ProviderFactory.getProviderForModel(finalModel);
+    // Get provider for this model (use ClaudeChromeProvider when useChromeMode is true)
+    const provider = ProviderFactory.getProviderForModel(finalModel, { useChromeMode });
 
-    logger.info(`Using provider "${provider.getName()}" for model "${finalModel}"`);
+    logger.info(
+      `Using provider "${provider.getName()}" for model "${finalModel}"${useChromeMode ? ' (Chrome mode)' : ''}`
+    );
 
     // Build prompt content with images using utility
     const { content: promptContent } = await buildPromptWithImages(

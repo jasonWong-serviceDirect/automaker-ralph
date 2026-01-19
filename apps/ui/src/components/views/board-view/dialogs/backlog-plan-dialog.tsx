@@ -29,6 +29,7 @@ import type {
   ModelAlias,
   CursorModelId,
   PhaseModelEntry,
+  BrowserToolMode,
 } from '@automaker/types';
 import { ModelOverrideTrigger } from '@/components/shared/model-override-trigger';
 import { useAppStore } from '@/store/app-store';
@@ -83,7 +84,7 @@ export function BacklogPlanDialog({
   const [selectedChanges, setSelectedChanges] = useState<Set<number>>(new Set());
   const [modelOverride, setModelOverride] = useState<PhaseModelEntry | null>(null);
 
-  const { phaseModels } = useAppStore();
+  const { phaseModels, browserToolMode } = useAppStore();
 
   // Set mode based on whether we have a pending result
   useEffect(() => {
@@ -117,7 +118,12 @@ export function BacklogPlanDialog({
     // Use model override if set, otherwise use global default (extract model string from PhaseModelEntry)
     const effectiveModelEntry = modelOverride || normalizeEntry(phaseModels.backlogPlanningModel);
     const effectiveModel = effectiveModelEntry.model;
-    const result = await api.backlogPlan.generate(projectPath, prompt, effectiveModel);
+    const result = await api.backlogPlan.generate(
+      projectPath,
+      prompt,
+      effectiveModel,
+      browserToolMode
+    );
     if (!result.success) {
       setIsGeneratingPlan(false);
       toast.error(result.error || 'Failed to start plan generation');
@@ -126,7 +132,7 @@ export function BacklogPlanDialog({
 
     // Clear prompt but keep modal open so user can see generation progress
     setPrompt('');
-  }, [projectPath, prompt, modelOverride, phaseModels, setIsGeneratingPlan]);
+  }, [projectPath, prompt, modelOverride, phaseModels, setIsGeneratingPlan, browserToolMode]);
 
   const handleApply = useCallback(async () => {
     if (!pendingPlanResult) return;

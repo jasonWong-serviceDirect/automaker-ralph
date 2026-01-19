@@ -1008,7 +1008,7 @@ const initialState: AppState = {
   autoModeActivityLog: [],
   maxConcurrency: 3, // Default to 3 concurrent agents
   useBrowserMode: false, // Default to browser mode disabled (requires browserTest settings)
-  browserToolMode: 'agent-browser' as BrowserToolMode, // Default to agent-browser CLI mode
+  browserToolMode: 'chrome-extension' as BrowserToolMode, // Default to Chrome MCP mode
   kanbanCardDetailLevel: 'standard', // Default to standard detail level
   boardViewMode: 'kanban', // Default to kanban view
   defaultSkipTests: true, // Default to manual verification (tests disabled)

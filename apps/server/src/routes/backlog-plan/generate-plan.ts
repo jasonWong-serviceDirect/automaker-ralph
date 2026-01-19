@@ -6,7 +6,13 @@
  */
 
 import type { EventEmitter } from '../../lib/events.js';
-import type { Feature, BacklogPlanResult, BacklogChange, DependencyUpdate } from '@automaker/types';
+import type {
+  Feature,
+  BacklogPlanResult,
+  BacklogChange,
+  DependencyUpdate,
+  BrowserToolMode,
+} from '@automaker/types';
 import { DEFAULT_PHASE_MODELS, isCursorModel, type ThinkingLevel } from '@automaker/types';
 import { resolvePhaseModel } from '@automaker/model-resolver';
 import { FeatureLoader } from '../../services/feature-loader.js';
@@ -20,13 +26,19 @@ const featureLoader = new FeatureLoader();
 
 /**
  * Format features for the AI prompt
+ * Only includes backlog and in_progress features
  */
 function formatFeaturesForPrompt(features: Feature[]): string {
-  if (features.length === 0) {
+  // Filter to only backlog and in_progress features
+  const activeFeatures = features.filter(
+    (f) => f.status === 'backlog' || f.status === 'in_progress'
+  );
+
+  if (activeFeatures.length === 0) {
     return 'No features in backlog yet.';
   }
 
-  return features
+  return activeFeatures
     .map((f) => {
       const deps = f.dependencies?.length ? `Dependencies: [${f.dependencies.join(', ')}]` : '';
       const priority = f.priority !== undefined ? `Priority: ${f.priority}` : '';
@@ -78,7 +90,8 @@ export async function generateBacklogPlan(
   events: EventEmitter,
   abortController: AbortController,
   settingsService?: SettingsService,
-  model?: string
+  model?: string,
+  browserToolMode?: BrowserToolMode
 ): Promise<BacklogPlanResult> {
   try {
     // Load current features
@@ -92,14 +105,38 @@ export async function generateBacklogPlan(
     // Load prompts from settings
     const prompts = await getPromptCustomization(settingsService, '[BacklogPlan]');
 
-    // Build the system prompt
-    const systemPrompt = prompts.backlogPlan.systemPrompt;
+    // Build the system prompt with dynamic browser instructions based on mode
+    logger.info('[BacklogPlan] browserToolMode:', browserToolMode);
+
+    let systemPrompt = prompts.backlogPlan.systemPrompt;
+    const playwrightLine =
+      'Include Playwright tests, unit tests, or E2E tests as needed for verification';
+
+    if (browserToolMode === 'chrome-extension') {
+      const browserLine = '4. For UI work requiring visual confirmation: Use Claude in Chrome';
+      systemPrompt = systemPrompt.replace(playwrightLine, `${playwrightLine}\n${browserLine}`);
+      logger.info('[BacklogPlan] Inserted chrome mode instruction');
+    } else if (browserToolMode === 'agent-browser') {
+      const browserLine =
+        '4. For UI work requiring visual confirmation: Use the agent-browser skill';
+      systemPrompt = systemPrompt.replace(playwrightLine, `${playwrightLine}\n${browserLine}`);
+      logger.info('[BacklogPlan] Inserted agent-browser mode instruction');
+    } else {
+      logger.info('[BacklogPlan] No browser instruction inserted (mode:', browserToolMode, ')');
+    }
 
     // Build the user prompt from template
     const currentFeatures = formatFeaturesForPrompt(features);
     const userPrompt = prompts.backlogPlan.userPromptTemplate
       .replace('{{currentFeatures}}', currentFeatures)
       .replace('{{userRequest}}', prompt);
+
+    // DEBUG: Log full prompts being sent to LLM
+    logger.info('[BacklogPlan] ========== SYSTEM PROMPT ==========');
+    logger.info(systemPrompt);
+    logger.info('[BacklogPlan] ========== USER PROMPT ==========');
+    logger.info(userPrompt);
+    logger.info('[BacklogPlan] ========== END PROMPTS ==========');
 
     events.emit('backlog-plan:event', {
       type: 'backlog_plan_progress',

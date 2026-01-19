@@ -24,6 +24,8 @@ import { STATIC_PORT, SERVER_PORT } from '@automaker/types';
  * ========================================================================
  */
 
+import type { BrowserToolMode } from '@automaker/types';
+
 /**
  * Chrome MCP (chrome-devtools-mcp) instructions for browser testing
  * Used when browserToolMode is 'chrome-extension'
@@ -56,6 +58,30 @@ Use these tools to navigate, interact with elements, and verify the UI works cor
 
 Do NOT mark tasks complete without visual confirmation in the browser.
 `;
+
+/**
+ * Agent-browser instructions for browser testing
+ * Used when browserToolMode is 'agent-browser' (default)
+ */
+export const AGENT_BROWSER_INSTRUCTIONS_SHORT = `Use browser for UI verification if needed`;
+
+/**
+ * Chrome MCP instructions (short form) for feature descriptions
+ * Used when browserToolMode is 'chrome-extension'
+ */
+export const CHROME_MCP_INSTRUCTIONS_SHORT = `For UI work requiring visual confirmation: Use the chrome MCP tools to navigate, interact, and take screenshots`;
+
+/**
+ * Get the appropriate browser instructions based on the browser tool mode
+ * @param browserToolMode - The browser tool mode setting
+ * @returns The appropriate browser instruction text for feature descriptions
+ */
+export function getBrowserInstructions(browserToolMode: BrowserToolMode): string {
+  if (browserToolMode === 'chrome-extension') {
+    return CHROME_MCP_INSTRUCTIONS_SHORT;
+  }
+  return AGENT_BROWSER_INSTRUCTIONS_SHORT;
+}
 
 /**
  * ========================================================================
@@ -99,7 +125,7 @@ Create a brief planning outline:
 5. **Risks**: Any gotchas to watch for
 
 **Iterative Execution:**
-- For UI work requiring visual confirmation: Use \`agent-browser\` commands (e.g., \`agent-browser open URL\`, \`agent-browser snapshot\`)
+- Use browser for UI verification if needed
 - For non-UI work or testable behavior: Use TDD - write failing tests first, iterate until they pass
 - Write Playwright tests, unit tests, or E2E tests as needed for verification
 
@@ -152,7 +178,7 @@ After generating the spec, output on its own line:
 DO NOT proceed with implementation until you receive explicit approval.
 
 **Iterative Execution:**
-- For UI work requiring visual confirmation: Use \`agent-browser\` commands (e.g., \`agent-browser open URL\`, \`agent-browser snapshot\`)
+- Use browser for UI verification if needed
 - For non-UI work or testable behavior: Use TDD - write failing tests first, iterate until they pass
 - Write Playwright tests, unit tests, or E2E tests as needed for verification
 
@@ -224,7 +250,7 @@ After generating the spec, output on its own line:
 DO NOT proceed with implementation until you receive explicit approval.
 
 **Iterative Execution:**
-- For UI work requiring visual confirmation: Use \`agent-browser\` commands (e.g., \`agent-browser open URL\`, \`agent-browser snapshot\`)
+- Use browser for UI verification if needed
 - For non-UI work or testable behavior: Use TDD - write failing tests first, iterate until they pass
 - Write Playwright tests, unit tests, or E2E tests as needed for verification
 
@@ -445,9 +471,8 @@ Important rules:
 **Iterative Execution:**
 All feature descriptions MUST include:
 1. A clear iterative process specific to the task with defined success criteria
-2. For UI work requiring visual confirmation: Use \`agent-browser\` commands (e.g., \`agent-browser open URL\`, \`agent-browser snapshot\`)
-3. For non-UI work or testable behavior: Use test-driven development (write failing tests first, iterate until they pass)
-4. Include Playwright tests, unit tests, or E2E tests as needed for verification
+2. For non-UI work or testable behavior: Use test-driven development (write failing tests first, iterate until they pass)
+3. Include Playwright tests, unit tests, or E2E tests as needed for verification
 
 The process should be tailored to the specific task - define what needs to be checked, what "done" looks like, and how to iterate.
 `;
@@ -515,9 +540,8 @@ Important rules:
 **Iterative Execution:**
 Updated feature descriptions MUST include:
 1. A clear iterative process specific to the task with defined success criteria
-2. For UI work requiring visual confirmation: Use \`agent-browser\` commands (e.g., \`agent-browser open URL\`, \`agent-browser snapshot\`)
-3. For non-UI work or testable behavior: Use test-driven development (write failing tests first, iterate until they pass)
-4. Include Playwright tests, unit tests, or E2E tests as needed for verification
+2. For non-UI work or testable behavior: Use test-driven development (write failing tests first, iterate until they pass)
+3. Include Playwright tests, unit tests, or E2E tests as needed for verification
 
 The process should be tailored to the specific task - define what needs to be checked, what "done" looks like, and how to iterate.
 `;
